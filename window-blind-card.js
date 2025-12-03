@@ -48,6 +48,14 @@ class WindowBlindCardEditor extends HTMLElement {
           <input type="text" data-key="name" id="name">
         </div>
         <div class="form-group">
+            <label for="size">Taille du composant</label>
+            <select data-key="size" id="size">
+                <option value="small">Petit</option>
+                <option value="medium">Moyen</option>
+                <option value="large">Grand</option>
+            </select>
+        </div>
+        <div class="form-group">
           <label for="window_type">Type de fenêtre</label>
           <select data-key="window_type" id="window_type">
             <option value="single">Simple</option>
@@ -102,6 +110,7 @@ class WindowBlindCardEditor extends HTMLElement {
 
     this._bind('entity', 'value', 'change');
     this._bind('name', 'value', 'input', this._config.entity);
+    this._bind('size', 'value', 'change', 'medium');
     this._bind('window_type', 'value', 'change', 'double');
     this._bind('window_width', 'value', 'change', 'medium');
     this._bind('window_height', 'value', 'change', 'medium');
@@ -156,6 +165,7 @@ class WindowBlindCard extends HTMLElement {
     this.config = {
       entity: config.entity,
       name: config.name || 'Store',
+      size: config.size || 'medium',
       window_type: config.window_type || 'double', // single, double, triple, bay
       glass_style: config.glass_style || 'clear', // clear, frosted, tinted, reflective
       window_width: config.window_width || 'medium', // narrow, medium, wide, extra-wide
@@ -176,22 +186,48 @@ class WindowBlindCard extends HTMLElement {
     }
   }
 
+  getComponentSize() {
+    const size = this.config.size;
+    const sizes = {
+        small: {
+            windowScale: 0.8,
+            fontScale: 0.8,
+            paddingScale: 0.8,
+            gapScale: 0.8
+        },
+        medium: {
+            windowScale: 1,
+            fontScale: 1,
+            paddingScale: 1,
+            gapScale: 1
+        },
+        large: {
+            windowScale: 1.2,
+            fontScale: 1.2,
+            paddingScale: 1.2,
+            gapScale: 1.2
+        }
+    };
+    return sizes[size] || sizes.medium;
+  }
+
   getWindowSize() {
     const width = this.config.window_width;
     const height = this.config.window_height;
+    const { windowScale } = this.getComponentSize();
 
     const widths = {
-      narrow: '160px',
-      medium: '200px',
-      wide: '260px',
-      'extra-wide': '320px'
+      narrow: 160 * windowScale + 'px',
+      medium: 200 * windowScale + 'px',
+      wide: 260 * windowScale + 'px',
+      'extra-wide': 320 * windowScale + 'px'
     };
 
     const heights = {
-      short: '200px',
-      medium: '280px',
-      tall: '360px',
-      'extra-tall': '440px'
+      short: 200 * windowScale + 'px',
+      medium: 280 * windowScale + 'px',
+      tall: 360 * windowScale + 'px',
+      'extra-tall': 440 * windowScale + 'px'
     };
 
     return {
@@ -274,6 +310,7 @@ class WindowBlindCard extends HTMLElement {
     const blindSlatColor = this.config.blind_slat_color;
     const windowSize = this.getWindowSize();
     const frameColor = this.config.window_frame_color;
+    const { fontScale, paddingScale, gapScale } = this.getComponentSize();
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -289,20 +326,27 @@ class WindowBlindCard extends HTMLElement {
         }
 
         .header {
-          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: ${12 * gapScale}px;
+          padding: ${16 * paddingScale}px;
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
           border-bottom: 1px solid rgba(0,0,0,0.1);
         }
 
+        .header ha-icon {
+          color: var(--primary-text-color);
+        }
+
         .header h2 {
           margin: 0;
-          font-size: 20px;
+          font-size: ${20 * fontScale}px;
           color: var(--primary-text-color);
           font-weight: 500;
         }
 
         .window-container {
-          padding: 24px;
+          padding: ${24 * paddingScale}px;
           background: #f5f5f5;
           display: flex;
           justify-content: center;
@@ -359,27 +403,27 @@ class WindowBlindCard extends HTMLElement {
         }
 
         .controls {
-          padding: 16px;
+          padding: ${16 * paddingScale}px;
         }
 
         .position-display {
           text-align: center;
-          margin-bottom: 12px;
+          margin-bottom: ${12 * paddingScale}px;
         }
 
         .position-value {
-          font-size: 36px;
+          font-size: ${36 * fontScale}px;
           font-weight: 600;
           color: var(--primary-color);
         }
 
         .position-label {
-          font-size: 14px;
+          font-size: ${14 * fontScale}px;
           color: var(--secondary-text-color);
         }
 
         .slider-container {
-          margin: 16px 0;
+          margin: ${16 * paddingScale}px 0;
         }
 
         .slider {
@@ -416,21 +460,21 @@ class WindowBlindCard extends HTMLElement {
         .buttons {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          gap: 8px;
-          margin-top: 16px;
+          gap: ${8 * gapScale}px;
+          margin-top: ${16 * paddingScale}px;
         }
 
         .btn {
-          padding: 12px;
+          padding: ${12 * paddingScale}px;
           border: none;
           border-radius: 8px;
-          font-size: 13px;
+          font-size: ${13 * fontScale}px;
           font-weight: 500;
           cursor: pointer;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 4px;
+          gap: ${4 * gapScale}px;
           transition: transform 0.2s, box-shadow 0.2s;
           color: white;
         }
@@ -457,13 +501,14 @@ class WindowBlindCard extends HTMLElement {
         }
 
         .icon {
-          font-size: 20px;
+          font-size: ${20 * fontScale}px;
         }
       </style>
 
       <ha-card class="card">
         <div class="header">
-          <h2>🪟 ${name}</h2>
+          <ha-icon icon="mdi:window-shutter"></ha-icon>
+          <h2>${name}</h2>
         </div>
 
         <div class="window-container">
@@ -576,6 +621,7 @@ class WindowBlindCard extends HTMLElement {
     return {
       entity: 'cover.store',
       name: 'Store',
+      size: 'medium',
       window_type: 'double',
       window_width: 'medium',
       window_height: 'medium',
