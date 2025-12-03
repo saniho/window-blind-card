@@ -12,6 +12,7 @@ class WindowBlindCard extends HTMLElement {
       entity: config.entity,
       name: config.name || 'Store',
       size: config.size || 'medium',
+      show_position_text: config.show_position_text !== false,
       window_type: config.window_type || 'double', // single, double, triple, bay
       glass_style: config.glass_style || 'clear', // clear, frosted, tinted, reflective
       window_width: config.window_width || 'medium', // narrow, medium, wide, extra-wide
@@ -162,6 +163,8 @@ class WindowBlindCard extends HTMLElement {
       <style>
         :host {
           display: block;
+          position: relative;
+          z-index: 0;
         }
 
         .card {
@@ -365,10 +368,12 @@ class WindowBlindCard extends HTMLElement {
         </div>
 
         <div class="controls">
+          ${this.config.show_position_text ? `
           <div class="position-display">
             <div class="position-value" id="positionValue">0</div>
             <div class="position-label">% ouvert</div>
           </div>
+          ` : ''}
 
           <div class="slider-container">
             <input type="range" min="0" max="100" value="0" class="slider" id="slider">
@@ -434,11 +439,14 @@ class WindowBlindCard extends HTMLElement {
 
   updateVisual(position) {
     const blind = this.shadowRoot.getElementById('blind');
-    const positionValue = this.shadowRoot.getElementById('positionValue');
-
-    if (blind && positionValue) {
+    if (this.config.show_position_text) {
+        const positionValue = this.shadowRoot.getElementById('positionValue');
+        if (positionValue) {
+            positionValue.textContent = position;
+        }
+    }
+    if (blind) {
       blind.style.height = (100 - position) + '%';
-      positionValue.textContent = position;
     }
   }
 
@@ -468,6 +476,7 @@ class WindowBlindCard extends HTMLElement {
       entity: 'cover.store',
       name: 'Store',
       size: 'medium',
+      show_position_text: true,
       window_type: 'double',
       window_width: 'medium',
       window_height: 'medium',
@@ -514,6 +523,7 @@ class WindowBlindCardEditor extends HTMLElement {
           color: var(--primary-text-color);
         }
         .color-input { padding: 2px; height: 38px; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; }
       </style>
       <div class="card-config">
         <div class="form-group">
@@ -533,6 +543,10 @@ class WindowBlindCardEditor extends HTMLElement {
                 <option value="medium">Moyen</option>
                 <option value="large">Grand</option>
             </select>
+        </div>
+        <div class="form-group checkbox-group">
+            <input type="checkbox" data-key="show_position_text" id="show_position_text">
+            <label for="show_position_text">Afficher le texte de position</label>
         </div>
         <div class="form-group">
           <label for="window_type">Type de fenêtre</label>
@@ -590,6 +604,7 @@ class WindowBlindCardEditor extends HTMLElement {
     this._bind('entity', 'value', 'change');
     this._bind('name', 'value', 'input', this._config.entity);
     this._bind('size', 'value', 'change', 'medium');
+    this._bind('show_position_text', 'checked', 'change', true);
     this._bind('window_type', 'value', 'change', 'double');
     this._bind('window_width', 'value', 'change', 'medium');
     this._bind('window_height', 'value', 'change', 'medium');
@@ -602,7 +617,11 @@ class WindowBlindCardEditor extends HTMLElement {
   _bind(id, prop, event, defaultValue) {
       const element = this.shadowRoot.getElementById(id);
       if (element) {
-          element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          if (element.type === 'checkbox') {
+              element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          } else {
+              element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          }
           element.addEventListener(event, (e) => this._valueChanged(e));
       }
   }
