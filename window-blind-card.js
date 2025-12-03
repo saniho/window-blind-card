@@ -1,4 +1,3 @@
-// window-blind-card.js
 class WindowBlindCard extends HTMLElement {
   constructor() {
     super();
@@ -12,6 +11,8 @@ class WindowBlindCard extends HTMLElement {
     this.config = {
       entity: config.entity,
       name: config.name || 'Store',
+      size: config.size || 'medium',
+      show_position_text: config.show_position_text !== false,
       window_type: config.window_type || 'double', // single, double, triple, bay
       glass_style: config.glass_style || 'clear', // clear, frosted, tinted, reflective
       window_width: config.window_width || 'medium', // narrow, medium, wide, extra-wide
@@ -32,22 +33,48 @@ class WindowBlindCard extends HTMLElement {
     }
   }
 
+  getComponentSize() {
+    const size = this.config.size;
+    const sizes = {
+        small: {
+            windowScale: 0.8,
+            fontScale: 0.8,
+            paddingScale: 0.8,
+            gapScale: 0.8
+        },
+        medium: {
+            windowScale: 1,
+            fontScale: 1,
+            paddingScale: 1,
+            gapScale: 1
+        },
+        large: {
+            windowScale: 1.2,
+            fontScale: 1.2,
+            paddingScale: 1.2,
+            gapScale: 1.2
+        }
+    };
+    return sizes[size] || sizes.medium;
+  }
+
   getWindowSize() {
     const width = this.config.window_width;
     const height = this.config.window_height;
+    const { windowScale } = this.getComponentSize();
 
     const widths = {
-      narrow: '160px',
-      medium: '200px',
-      wide: '260px',
-      'extra-wide': '320px'
+      narrow: 160 * windowScale + 'px',
+      medium: 200 * windowScale + 'px',
+      wide: 260 * windowScale + 'px',
+      'extra-wide': 320 * windowScale + 'px'
     };
 
     const heights = {
-      short: '200px',
-      medium: '280px',
-      tall: '360px',
-      'extra-tall': '440px'
+      short: 200 * windowScale + 'px',
+      medium: 280 * windowScale + 'px',
+      tall: 360 * windowScale + 'px',
+      'extra-tall': 440 * windowScale + 'px'
     };
 
     return {
@@ -130,11 +157,14 @@ class WindowBlindCard extends HTMLElement {
     const blindSlatColor = this.config.blind_slat_color;
     const windowSize = this.getWindowSize();
     const frameColor = this.config.window_frame_color;
+    const { fontScale, paddingScale, gapScale } = this.getComponentSize();
 
     this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
+          position: relative;
+          z-index: 0;
         }
 
         .card {
@@ -145,36 +175,27 @@ class WindowBlindCard extends HTMLElement {
         }
 
         .header {
-          padding: 16px;
+          display: flex;
+          align-items: center;
+          gap: ${12 * gapScale}px;
+          padding: ${16 * paddingScale}px;
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
           border-bottom: 1px solid rgba(0,0,0,0.1);
         }
 
+        .header ha-icon {
+          color: var(--primary-text-color);
+        }
+
         .header h2 {
           margin: 0;
-          font-size: 20px;
+          font-size: ${20 * fontScale}px;
           color: var(--primary-text-color);
           font-weight: 500;
         }
 
-        .config-info {
-          display: flex;
-          gap: 8px;
-          margin-top: 8px;
-          font-size: 12px;
-          color: var(--secondary-text-color);
-          flex-wrap: wrap;
-        }
-
-        .config-badge {
-          background: rgba(255,255,255,0.7);
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-weight: 500;
-        }
-
         .window-container {
-          padding: 24px;
+          padding: ${24 * paddingScale}px;
           background: #f5f5f5;
           display: flex;
           justify-content: center;
@@ -231,27 +252,27 @@ class WindowBlindCard extends HTMLElement {
         }
 
         .controls {
-          padding: 16px;
+          padding: ${16 * paddingScale}px;
         }
 
         .position-display {
           text-align: center;
-          margin-bottom: 12px;
+          margin-bottom: ${12 * paddingScale}px;
         }
 
         .position-value {
-          font-size: 36px;
+          font-size: ${36 * fontScale}px;
           font-weight: 600;
           color: var(--primary-color);
         }
 
         .position-label {
-          font-size: 14px;
+          font-size: ${14 * fontScale}px;
           color: var(--secondary-text-color);
         }
 
         .slider-container {
-          margin: 16px 0;
+          margin: ${16 * paddingScale}px 0;
         }
 
         .slider {
@@ -288,21 +309,21 @@ class WindowBlindCard extends HTMLElement {
         .buttons {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          gap: 8px;
-          margin-top: 16px;
+          gap: ${8 * gapScale}px;
+          margin-top: ${16 * paddingScale}px;
         }
 
         .btn {
-          padding: 12px;
+          padding: ${12 * paddingScale}px;
           border: none;
           border-radius: 8px;
-          font-size: 13px;
+          font-size: ${13 * fontScale}px;
           font-weight: 500;
           cursor: pointer;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 4px;
+          gap: ${4 * gapScale}px;
           transition: transform 0.2s, box-shadow 0.2s;
           color: white;
         }
@@ -329,19 +350,14 @@ class WindowBlindCard extends HTMLElement {
         }
 
         .icon {
-          font-size: 20px;
+          font-size: ${20 * fontScale}px;
         }
       </style>
 
       <ha-card class="card">
         <div class="header">
-          <h2>🪟 ${name}</h2>
-          <div class="config-info">
-            <span class="config-badge">📐 ${this.getWindowTypeLabel()}</span>
-            <span class="config-badge">📏 ${this.getWindowWidthLabel()}</span>
-            <span class="config-badge">📊 ${this.getWindowHeightLabel()}</span>
-            <span class="config-badge">🪟 ${this.getGlassStyleLabel()}</span>
-          </div>
+          <ha-icon icon="mdi:window-shutter"></ha-icon>
+          <h2>${name}</h2>
         </div>
 
         <div class="window-container">
@@ -352,10 +368,12 @@ class WindowBlindCard extends HTMLElement {
         </div>
 
         <div class="controls">
+          ${this.config.show_position_text ? `
           <div class="position-display">
             <div class="position-value" id="positionValue">0</div>
             <div class="position-label">% ouvert</div>
           </div>
+          ` : ''}
 
           <div class="slider-container">
             <input type="range" min="0" max="100" value="0" class="slider" id="slider">
@@ -380,48 +398,6 @@ class WindowBlindCard extends HTMLElement {
     `;
 
     this.setupEventListeners();
-  }
-
-  getWindowTypeLabel() {
-    const labels = {
-      single: 'Simple',
-      double: 'Double',
-      triple: 'Triple',
-      bay: 'Baie vitrée',
-      grid: 'Grille'
-    };
-    return labels[this.config.window_type] || 'Double';
-  }
-
-  getWindowWidthLabel() {
-    const labels = {
-      narrow: 'Étroite',
-      medium: 'Moyenne',
-      wide: 'Large',
-      'extra-wide': 'Très large'
-    };
-    return labels[this.config.window_width] || 'Moyenne';
-  }
-
-  getWindowHeightLabel() {
-    const labels = {
-      short: 'Basse',
-      medium: 'Moyenne',
-      tall: 'Haute',
-      'extra-tall': 'Très haute'
-    };
-    return labels[this.config.window_height] || 'Moyenne';
-  }
-
-  getGlassStyleLabel() {
-    const labels = {
-      clear: 'Clair',
-      frosted: 'Dépoli',
-      tinted: 'Teinté',
-      reflective: 'Réfléchissant',
-      stained: 'Vitrail'
-    };
-    return labels[this.config.glass_style] || 'Clair';
   }
 
   setupEventListeners() {
@@ -463,11 +439,14 @@ class WindowBlindCard extends HTMLElement {
 
   updateVisual(position) {
     const blind = this.shadowRoot.getElementById('blind');
-    const positionValue = this.shadowRoot.getElementById('positionValue');
-
-    if (blind && positionValue) {
+    if (this.config.show_position_text) {
+        const positionValue = this.shadowRoot.getElementById('positionValue');
+        if (positionValue) {
+            positionValue.textContent = position;
+        }
+    }
+    if (blind) {
       blind.style.height = (100 - position) + '%';
-      positionValue.textContent = position;
     }
   }
 
@@ -496,6 +475,8 @@ class WindowBlindCard extends HTMLElement {
     return {
       entity: 'cover.store',
       name: 'Store',
+      size: 'medium',
+      show_position_text: true,
       window_type: 'double',
       window_width: 'medium',
       window_height: 'medium',
@@ -505,7 +486,169 @@ class WindowBlindCard extends HTMLElement {
   }
 }
 
+class WindowBlindCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = {};
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+  }
+
+  setConfig(config) {
+    this._config = config;
+    this.render();
+  }
+
+  render() {
+    if (!this._hass) {
+      return;
+    }
+
+    const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        .form-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+        label { margin-bottom: 4px; font-weight: 500; color: var(--primary-text-color); }
+        input, select { 
+          width: 100%; 
+          padding: 8px; 
+          box-sizing: border-box; 
+          border: 1px solid var(--divider-color); 
+          border-radius: 4px; 
+          background: var(--input-fill-color);
+          color: var(--primary-text-color);
+        }
+        .color-input { padding: 2px; height: 38px; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; }
+      </style>
+      <div class="card-config">
+        <div class="form-group">
+          <label for="entity">Entité (Entity)</label>
+          <select data-key="entity" id="entity">
+            ${entities.map(entity => `<option value="${entity}">${this._hass.states[entity].attributes.friendly_name || entity}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="name">Nom</label>
+          <input type="text" data-key="name" id="name">
+        </div>
+        <div class="form-group">
+            <label for="size">Taille du composant</label>
+            <select data-key="size" id="size">
+                <option value="small">Petit</option>
+                <option value="medium">Moyen</option>
+                <option value="large">Grand</option>
+            </select>
+        </div>
+        <div class="form-group checkbox-group">
+            <input type="checkbox" data-key="show_position_text" id="show_position_text">
+            <label for="show_position_text">Afficher le texte de position</label>
+        </div>
+        <div class="form-group">
+          <label for="window_type">Type de fenêtre</label>
+          <select data-key="window_type" id="window_type">
+            <option value="single">Simple</option>
+            <option value="double">Double</option>
+            <option value="triple">Triple</option>
+            <option value="bay">Baie vitrée</option>
+            <option value="grid">Grille</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_width">Largeur de la fenêtre</label>
+          <select data-key="window_width" id="window_width">
+            <option value="narrow">Étroite</option>
+            <option value="medium">Moyenne</option>
+            <option value="wide">Large</option>
+            <option value="extra-wide">Très large</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_height">Hauteur de la fenêtre</label>
+          <select data-key="window_height" id="window_height">
+            <option value="short">Basse</option>
+            <option value="medium">Moyenne</option>
+            <option value="tall">Haute</option>
+            <option value="extra-tall">Très haute</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="glass_style">Style du verre</label>
+          <select data-key="glass_style" id="glass_style">
+            <option value="clear">Clair</option>
+            <option value="frosted">Dépoli</option>
+            <option value="tinted">Teinté</option>
+            <option value="reflective">Réfléchissant</option>
+            <option value="stained">Vitrail</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_frame_color">Couleur du cadre</label>
+          <input type="color" class="color-input" data-key="window_frame_color" id="window_frame_color">
+        </div>
+        <div class="form-group">
+          <label for="blind_color">Couleur du store</label>
+          <input type="color" class="color-input" data-key="blind_color" id="blind_color">
+        </div>
+        <div class="form-group">
+          <label for="blind_slat_color">Couleur des lattes</label>
+          <input type="color" class="color-input" data-key="blind_slat_color" id="blind_slat_color">
+        </div>
+      </div>
+    `;
+
+    this._bind('entity', 'value', 'change');
+    this._bind('name', 'value', 'input', this._config.entity);
+    this._bind('size', 'value', 'change', 'medium');
+    this._bind('show_position_text', 'checked', 'change', true);
+    this._bind('window_type', 'value', 'change', 'double');
+    this._bind('window_width', 'value', 'change', 'medium');
+    this._bind('window_height', 'value', 'change', 'medium');
+    this._bind('glass_style', 'value', 'change', 'clear');
+    this._bind('window_frame_color', 'value', 'input', '#333333');
+    this._bind('blind_color', 'value', 'input', '#d4d4d4');
+    this._bind('blind_slat_color', 'value', 'input', '#999999');
+  }
+
+  _bind(id, prop, event, defaultValue) {
+      const element = this.shadowRoot.getElementById(id);
+      if (element) {
+          if (element.type === 'checkbox') {
+              element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          } else {
+              element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          }
+          element.addEventListener(event, (e) => this._valueChanged(e));
+      }
+  }
+
+  _valueChanged(ev) {
+    if (!this._config || !this._hass) {
+      return;
+    }
+    const target = ev.target;
+    const key = target.dataset.key;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+
+    if (this._config[key] !== value) {
+        const newConfig = { ...this._config, [key]: value };
+        this._config = newConfig;
+        const event = new CustomEvent("config-changed", {
+            bubbles: true,
+            composed: true,
+            detail: { config: newConfig },
+        });
+        this.dispatchEvent(event);
+    }
+  }
+}
+
 customElements.define('window-blind-card', WindowBlindCard);
+customElements.define('window-blind-card-editor', WindowBlindCardEditor);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
