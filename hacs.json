@@ -1,0 +1,7 @@
+{
+  "name": "Window Blind Card",
+  "render_readme": true,
+  "filename": "window-blind-card.js",
+  "content_in_root": false,
+  "homeassistant": "2023.1.0"
+}
