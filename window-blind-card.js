@@ -1,157 +1,3 @@
-class WindowBlindCardEditor extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-    this._config = {};
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-  }
-
-  setConfig(config) {
-    this._config = config;
-    this.render();
-  }
-
-  render() {
-    if (!this._hass) {
-      return;
-    }
-
-    const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
-
-    this.shadowRoot.innerHTML = `
-      <style>
-        .form-group { display: flex; flex-direction: column; margin-bottom: 12px; }
-        label { margin-bottom: 4px; font-weight: 500; color: var(--primary-text-color); }
-        input, select { 
-          width: 100%; 
-          padding: 8px; 
-          box-sizing: border-box; 
-          border: 1px solid var(--divider-color); 
-          border-radius: 4px; 
-          background: var(--input-fill-color);
-          color: var(--primary-text-color);
-        }
-        .color-input { padding: 2px; height: 38px; }
-      </style>
-      <div class="card-config">
-        <div class="form-group">
-          <label for="entity">Entité (Entity)</label>
-          <select data-key="entity" id="entity">
-            ${entities.map(entity => `<option value="${entity}">${this._hass.states[entity].attributes.friendly_name || entity}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="name">Nom</label>
-          <input type="text" data-key="name" id="name">
-        </div>
-        <div class="form-group">
-            <label for="size">Taille du composant</label>
-            <select data-key="size" id="size">
-                <option value="small">Petit</option>
-                <option value="medium">Moyen</option>
-                <option value="large">Grand</option>
-            </select>
-        </div>
-        <div class="form-group">
-          <label for="window_type">Type de fenêtre</label>
-          <select data-key="window_type" id="window_type">
-            <option value="single">Simple</option>
-            <option value="double">Double</option>
-            <option value="triple">Triple</option>
-            <option value="bay">Baie vitrée</option>
-            <option value="grid">Grille</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="window_width">Largeur de la fenêtre</label>
-          <select data-key="window_width" id="window_width">
-            <option value="narrow">Étroite</option>
-            <option value="medium">Moyenne</option>
-            <option value="wide">Large</option>
-            <option value="extra-wide">Très large</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="window_height">Hauteur de la fenêtre</label>
-          <select data-key="window_height" id="window_height">
-            <option value="short">Basse</option>
-            <option value="medium">Moyenne</option>
-            <option value="tall">Haute</option>
-            <option value="extra-tall">Très haute</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="glass_style">Style du verre</label>
-          <select data-key="glass_style" id="glass_style">
-            <option value="clear">Clair</option>
-            <option value="frosted">Dépoli</option>
-            <option value="tinted">Teinté</option>
-            <option value="reflective">Réfléchissant</option>
-            <option value="stained">Vitrail</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="window_frame_color">Couleur du cadre</label>
-          <input type="color" class="color-input" data-key="window_frame_color" id="window_frame_color">
-        </div>
-        <div class="form-group">
-          <label for="blind_color">Couleur du store</label>
-          <input type="color" class="color-input" data-key="blind_color" id="blind_color">
-        </div>
-        <div class="form-group">
-          <label for="blind_slat_color">Couleur des lattes</label>
-          <input type="color" class="color-input" data-key="blind_slat_color" id="blind_slat_color">
-        </div>
-      </div>
-    `;
-
-    this._bind('entity', 'value', 'change');
-    this._bind('name', 'value', 'input', this._config.entity);
-    this._bind('size', 'value', 'change', 'medium');
-    this._bind('window_type', 'value', 'change', 'double');
-    this._bind('window_width', 'value', 'change', 'medium');
-    this._bind('window_height', 'value', 'change', 'medium');
-    this._bind('glass_style', 'value', 'change', 'clear');
-    this._bind('window_frame_color', 'value', 'input', '#333333');
-    this._bind('blind_color', 'value', 'input', '#d4d4d4');
-    this._bind('blind_slat_color', 'value', 'input', '#999999');
-  }
-
-  _bind(id, prop, event, defaultValue) {
-      const element = this.shadowRoot.getElementById(id);
-      if (element) {
-          element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
-          element.addEventListener(event, (e) => this._valueChanged(e));
-      }
-  }
-
-  _valueChanged(ev) {
-    if (!this._config || !this._hass) {
-      return;
-    }
-    const target = ev.target;
-    const key = target.dataset.key;
-    const value = target.type === 'checkbox' ? target.checked : target.value;
-
-    if (this._config[key] !== value) {
-        const newConfig = { ...this._config, [key]: value };
-        this._config = newConfig;
-        const event = new CustomEvent("config-changed", {
-            bubbles: true,
-            composed: true,
-            detail: { config: newConfig },
-        });
-        this.dispatchEvent(event);
-    }
-  }
-}
-
-customElements.define('window-blind-card-editor', WindowBlindCardEditor);
-
-// window-blind-card.js
 class WindowBlindCard extends HTMLElement {
   constructor() {
     super();
@@ -631,7 +477,159 @@ class WindowBlindCard extends HTMLElement {
   }
 }
 
+class WindowBlindCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = {};
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+  }
+
+  setConfig(config) {
+    this._config = config;
+    this.render();
+  }
+
+  render() {
+    if (!this._hass) {
+      return;
+    }
+
+    const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        .form-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+        label { margin-bottom: 4px; font-weight: 500; color: var(--primary-text-color); }
+        input, select { 
+          width: 100%; 
+          padding: 8px; 
+          box-sizing: border-box; 
+          border: 1px solid var(--divider-color); 
+          border-radius: 4px; 
+          background: var(--input-fill-color);
+          color: var(--primary-text-color);
+        }
+        .color-input { padding: 2px; height: 38px; }
+      </style>
+      <div class="card-config">
+        <div class="form-group">
+          <label for="entity">Entité (Entity)</label>
+          <select data-key="entity" id="entity">
+            ${entities.map(entity => `<option value="${entity}">${this._hass.states[entity].attributes.friendly_name || entity}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="name">Nom</label>
+          <input type="text" data-key="name" id="name">
+        </div>
+        <div class="form-group">
+            <label for="size">Taille du composant</label>
+            <select data-key="size" id="size">
+                <option value="small">Petit</option>
+                <option value="medium">Moyen</option>
+                <option value="large">Grand</option>
+            </select>
+        </div>
+        <div class="form-group">
+          <label for="window_type">Type de fenêtre</label>
+          <select data-key="window_type" id="window_type">
+            <option value="single">Simple</option>
+            <option value="double">Double</option>
+            <option value="triple">Triple</option>
+            <option value="bay">Baie vitrée</option>
+            <option value="grid">Grille</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_width">Largeur de la fenêtre</label>
+          <select data-key="window_width" id="window_width">
+            <option value="narrow">Étroite</option>
+            <option value="medium">Moyenne</option>
+            <option value="wide">Large</option>
+            <option value="extra-wide">Très large</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_height">Hauteur de la fenêtre</label>
+          <select data-key="window_height" id="window_height">
+            <option value="short">Basse</option>
+            <option value="medium">Moyenne</option>
+            <option value="tall">Haute</option>
+            <option value="extra-tall">Très haute</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="glass_style">Style du verre</label>
+          <select data-key="glass_style" id="glass_style">
+            <option value="clear">Clair</option>
+            <option value="frosted">Dépoli</option>
+            <option value="tinted">Teinté</option>
+            <option value="reflective">Réfléchissant</option>
+            <option value="stained">Vitrail</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_frame_color">Couleur du cadre</label>
+          <input type="color" class="color-input" data-key="window_frame_color" id="window_frame_color">
+        </div>
+        <div class="form-group">
+          <label for="blind_color">Couleur du store</label>
+          <input type="color" class="color-input" data-key="blind_color" id="blind_color">
+        </div>
+        <div class="form-group">
+          <label for="blind_slat_color">Couleur des lattes</label>
+          <input type="color" class="color-input" data-key="blind_slat_color" id="blind_slat_color">
+        </div>
+      </div>
+    `;
+
+    this._bind('entity', 'value', 'change');
+    this._bind('name', 'value', 'input', this._config.entity);
+    this._bind('size', 'value', 'change', 'medium');
+    this._bind('window_type', 'value', 'change', 'double');
+    this._bind('window_width', 'value', 'change', 'medium');
+    this._bind('window_height', 'value', 'change', 'medium');
+    this._bind('glass_style', 'value', 'change', 'clear');
+    this._bind('window_frame_color', 'value', 'input', '#333333');
+    this._bind('blind_color', 'value', 'input', '#d4d4d4');
+    this._bind('blind_slat_color', 'value', 'input', '#999999');
+  }
+
+  _bind(id, prop, event, defaultValue) {
+      const element = this.shadowRoot.getElementById(id);
+      if (element) {
+          element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          element.addEventListener(event, (e) => this._valueChanged(e));
+      }
+  }
+
+  _valueChanged(ev) {
+    if (!this._config || !this._hass) {
+      return;
+    }
+    const target = ev.target;
+    const key = target.dataset.key;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+
+    if (this._config[key] !== value) {
+        const newConfig = { ...this._config, [key]: value };
+        this._config = newConfig;
+        const event = new CustomEvent("config-changed", {
+            bubbles: true,
+            composed: true,
+            detail: { config: newConfig },
+        });
+        this.dispatchEvent(event);
+    }
+  }
+}
+
 customElements.define('window-blind-card', WindowBlindCard);
+customElements.define('window-blind-card-editor', WindowBlindCardEditor);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
