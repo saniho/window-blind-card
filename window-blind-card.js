@@ -195,6 +195,17 @@ class WindowBlindCard extends HTMLElement {
     }
   }
 
+  getLightRaysRotation() {
+    const orientation = this.config.window_orientation || 'south';
+    const rotations = {
+      north: 45,    // Soleil de côté nord-est
+      south: 0,     // Soleil de face (horizontal)
+      east: 45,     // Soleil de côté est
+      west: -45     // Soleil de côté ouest
+    };
+    return rotations[orientation] || 0;
+  }
+
   render() {
     const name = this.config.name;
     const glassStyle = this.getGlassStyle();
@@ -333,6 +344,25 @@ class WindowBlindCard extends HTMLElement {
           z-index: 10;
         }
 
+        .light-rays {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: repeating-linear-gradient(
+            ${this.getLightRaysRotation()}deg,
+            transparent 0px,
+            transparent 13px,
+            rgba(255, 255, 255, ${this.isSunlight() ? '0.15' : '0'}) 13px,
+            rgba(255, 255, 255, ${this.isSunlight() ? '0.15' : '0'}) 14px,
+            transparent 14px,
+            transparent 16px
+          );
+          z-index: 11;
+          pointer-events: none;
+        }
+
         .controls {
           padding: ${16 * paddingScale}px;
         }
@@ -455,7 +485,9 @@ class WindowBlindCard extends HTMLElement {
 
         <div class="window-container">
           <div class="window-frame">
-            <div class="blind" id="blind"></div>
+            <div class="blind" id="blind">
+              <div class="light-rays" id="lightRays"></div>
+            </div>
             ${this.getWindowDividers()}
           </div>
         </div>
