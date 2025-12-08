@@ -20,9 +20,12 @@ class WindowBlindCard extends HTMLElement {
       window_frame_color: config.window_frame_color || '#333333', // Couleur du cadre
       blind_color: config.blind_color || '#d4d4d4',
       blind_slat_color: config.blind_slat_color || '#999999',
+      window_orientation: config.window_orientation || 'south', // north, south, east, west
       ...config
     };
     this.render();
+    this.updateSunIcon();
+    setInterval(() => this.updateSunIcon(), 60000);
   }
 
   set hass(hass) {
@@ -149,6 +152,49 @@ class WindowBlindCard extends HTMLElement {
     return opacities[style] || '0.1';
   }
 
+  isSunlight() {
+    const hour = new Date().getHours();
+    return hour >= 6 && hour < 18;
+  }
+
+  getOrientationIcon() {
+    const orientation = this.config.window_orientation || 'south';
+    const icons = {
+      north: 'mdi:arrow-up',
+      south: 'mdi:arrow-down',
+      east: 'mdi:arrow-right',
+      west: 'mdi:arrow-left'
+    };
+    return icons[orientation] || icons.south;
+  }
+
+  getOrientationLabel() {
+    const orientation = this.config.window_orientation || 'south';
+    const labels = {
+      north: 'Nord',
+      south: 'Sud',
+      east: 'Est',
+      west: 'Ouest'
+    };
+    return labels[orientation] || 'Sud';
+  }
+
+  updateSunIcon() {
+    const sunIcon = this.shadowRoot.getElementById('sunIcon');
+    if (sunIcon) {
+      const haIcon = sunIcon.querySelector('ha-icon');
+      if (haIcon) {
+        if (this.isSunlight()) {
+          haIcon.setAttribute('icon', 'mdi:weather-sunny');
+          sunIcon.style.color = '#FFB300';
+        } else {
+          haIcon.setAttribute('icon', 'mdi:moon-waning-crescent');
+          sunIcon.style.color = '#7986CB';
+        }
+      }
+    }
+  }
+
   render() {
     const name = this.config.name;
     const glassStyle = this.getGlassStyle();
@@ -177,10 +223,46 @@ class WindowBlindCard extends HTMLElement {
         .header {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: ${12 * gapScale}px;
           padding: ${16 * paddingScale}px;
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
           border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: ${12 * gapScale}px;
+        }
+
+        .header-right {
+          display: flex;
+          align-items: center;
+          gap: ${8 * gapScale}px;
+        }
+
+        .sun-icon {
+          font-size: ${24 * fontScale}px;
+          display: flex;
+          align-items: center;
+          color: #FFB300;
+        }
+
+        .sun-icon ha-icon {
+          color: #FFB300 !important;
+        }
+
+        .orientation-badge {
+          display: flex;
+          align-items: center;
+          gap: ${4 * gapScale}px;
+          font-size: ${12 * fontScale}px;
+          color: var(--secondary-text-color);
+        }
+
+        .orientation-badge ha-icon {
+          color: var(--secondary-text-color) !important;
         }
 
         .header ha-icon {
@@ -356,8 +438,19 @@ class WindowBlindCard extends HTMLElement {
 
       <ha-card class="card">
         <div class="header">
-          <ha-icon icon="mdi:window-shutter"></ha-icon>
-          <h2>${name}</h2>
+          <div class="header-left">
+            <ha-icon icon="mdi:window-shutter"></ha-icon>
+            <h2>${name}</h2>
+          </div>
+          <div class="header-right">
+            <div class="sun-icon" id="sunIcon">
+              <ha-icon icon="mdi:weather-sunny"></ha-icon>
+            </div>
+            <div class="orientation-badge">
+              <ha-icon icon="${this.getOrientationIcon()}"></ha-icon>
+              <span>${this.getOrientationLabel()}</span>
+            </div>
+          </div>
         </div>
 
         <div class="window-container">
@@ -481,7 +574,8 @@ class WindowBlindCard extends HTMLElement {
       window_width: 'medium',
       window_height: 'medium',
       window_frame_color: '#333333',
-      glass_style: 'clear'
+      glass_style: 'clear',
+      window_orientation: 'south'
     };
   }
 }
@@ -549,6 +643,15 @@ class WindowBlindCardEditor extends HTMLElement {
             <label for="show_position_text">Afficher le texte de position</label>
         </div>
         <div class="form-group">
+          <label for="window_orientation">Orientation de la fenêtre</label>
+          <select data-key="window_orientation" id="window_orientation">
+            <option value="north">Nord</option>
+            <option value="south">Sud</option>
+            <option value="east">Est</option>
+            <option value="west">Ouest</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label for="window_type">Type de fenêtre</label>
           <select data-key="window_type" id="window_type">
             <option value="single">Simple</option>
@@ -605,6 +708,7 @@ class WindowBlindCardEditor extends HTMLElement {
     this._bind('name', 'value', 'input', this._config.entity);
     this._bind('size', 'value', 'change', 'medium');
     this._bind('show_position_text', 'checked', 'change', true);
+    this._bind('window_orientation', 'value', 'change', 'south');
     this._bind('window_type', 'value', 'change', 'double');
     this._bind('window_width', 'value', 'change', 'medium');
     this._bind('window_height', 'value', 'change', 'medium');
