@@ -396,6 +396,6 @@ window.customCards.push({
   name: 'Window Blind Card',
   description: 'Une carte pour contrôler vos stores avec des effets visuels.',
   preview: true,
-  documentationURL: 'https://github.com/votre-username/window-blind-card'
+  documentationURL: 'https://github.com/saniho/window-blind-card'
 });
-console.info('%c WINDOW-BLIND-CARD %c Version 3.2.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c Version 2.0.0e ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
