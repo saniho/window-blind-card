@@ -5,193 +5,127 @@ class WindowBlindCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.entity && (!config.entities || config.entities.length === 0)) {
-      throw new Error('Vous devez définir une entité principale (entity) ou une liste d\'entités (entities)');
+    if (!config.entity) {
+      throw new Error('Vous devez définir une entité');
     }
-    
-    const mainEntity = config.entity || (config.entities && config.entities[0]);
-
     this.config = {
-      entity: mainEntity,
+      entity: config.entity,
       name: config.name || 'Store',
       size: config.size || 'medium',
       show_position_text: config.show_position_text !== false,
-      show_weather_indicator: config.show_weather_indicator !== false,
-      window_type: config.window_type || 'double',
-      glass_style: config.glass_style || 'clear',
-      window_width: config.window_width || 'medium',
-      window_height: config.window_height || 'medium',
-      window_frame_color: config.window_frame_color || '#333333',
-      window_frame_material: config.window_frame_material || 'pvc',
-      blind_type: config.blind_type || 'roller',
+      window_type: config.window_type || 'double', // single, double, triple, bay
+      glass_style: config.glass_style || 'clear', // clear, frosted, tinted, reflective
+      window_width: config.window_width || 'medium', // narrow, medium, wide, extra-wide
+      window_height: config.window_height || 'medium', // short, medium, tall, extra-tall
+      window_frame_color: config.window_frame_color || '#333333', // Couleur du cadre
       blind_color: config.blind_color || '#d4d4d4',
       blind_slat_color: config.blind_slat_color || '#999999',
-      show_handle: config.show_handle !== false,
-      handle_position: config.handle_position || 'right',
-      handle_style: config.handle_style || 'modern',
-      handle_color: config.handle_color || '#666666',
-      show_preset_buttons: config.show_preset_buttons !== false,
-      preset_positions: config.preset_positions || [25, 50, 75],
-      entities: config.entities || [],
-      show_sun_effects: config.show_sun_effects || false,
-      window_orientation: config.window_orientation || 'south',
       ...config
     };
-    
     this.render();
-    this.startSunTracking();
   }
 
   set hass(hass) {
     this._hass = hass;
     const entity = hass.states[this.config.entity];
-    if (entity) this.updateBlind(entity);
-    if (this.config.entities.length > 0) this.updateMultiStores();
-    if (this.config.show_sun_effects) this.updateSunEffects();
-  }
-  
-  connectedCallback() {
-    this.startSunTracking();
-  }
-
-  disconnectedCallback() {
-    if (this.sunInterval) clearInterval(this.sunInterval);
-  }
-  
-  startSunTracking() {
-    if (!this.config.show_sun_effects) return;
-    this.updateSunEffects();
-    if (this.sunInterval) clearInterval(this.sunInterval);
-    this.sunInterval = setInterval(() => this.updateSunEffects(), 60000);
-  }
-
-  getSunPosition() {
-    const now = new Date();
-    const hours = now.getHours();
-    const timeDecimal = hours + now.getMinutes() / 60;
-    const sunrise = 6, sunset = 18;
-    let sunAngle = 0, intensity = 0;
-    
-    if (timeDecimal >= sunrise && timeDecimal <= sunset) {
-      const progress = (timeDecimal - sunrise) / (sunset - sunrise);
-      sunAngle = -90 + (progress * 180);
-      intensity = Math.sin(progress * Math.PI);
-    }
-    return { angle: sunAngle, intensity, hours };
-  }
-
-  updateSunEffects() {
-    if (!this.config.show_sun_effects) return;
-    
-    const sunPos = this.getSunPosition();
-    const { orientation, show_weather_indicator } = this.config;
-    
-    const weatherIndicator = this.shadowRoot.querySelector('.weather-indicator');
-    const container = this.shadowRoot.querySelector('.window-container');
-    const glassGlare = this.shadowRoot.querySelector('.glass-glare');
-
-    // Set background color
-    const bgColors = { night: '#2c3e50', dawn: '#87CEEB', day: '#f5f5f5', dusk: '#FFB347' };
-    let bgColor = bgColors.day;
-    if (sunPos.hours < 6 || sunPos.hours >= 20) bgColor = bgColors.night;
-    else if (sunPos.hours < 8) bgColor = bgColors.dawn;
-    else if (sunPos.hours >= 17) bgColor = bgColors.dusk;
-    if (container) container.style.background = bgColor;
-
-    // Set weather icon
-    if (show_weather_indicator && weatherIndicator) {
-      let weatherIcon = '', iconOpacity = '0';
-      if (sunPos.intensity === 0) {
-        weatherIcon = '🌙';
-        iconOpacity = '0.7';
-      } else {
-        let isSunlit = false;
-        if (orientation === 'east') isSunlit = sunPos.angle < -15;
-        else if (orientation === 'south') isSunlit = Math.abs(sunPos.angle) < 45;
-        else if (orientation === 'west') isSunlit = sunPos.angle > 15;
-        
-        weatherIcon = isSunlit ? '☀️' : '⛅';
-        iconOpacity = (0.5 + sunPos.intensity * 0.5).toFixed(2);
-      }
-      weatherIndicator.textContent = weatherIcon;
-      weatherIndicator.style.opacity = iconOpacity;
-    }
-    
-    // Set glass glare effect
-    if (glassGlare) {
-        const isSunlit = sunPos.intensity > 0.5;
-        glassGlare.style.opacity = isSunlit ? (sunPos.intensity - 0.5) * 0.5 : '0';
+    if (entity) {
+      this.updateBlind(entity);
     }
   }
 
   getComponentSize() {
-    const { size } = this.config;
+    const size = this.config.size;
     const sizes = {
-        small: { windowScale: 0.8, fontScale: 0.8, paddingScale: 0.8, gapScale: 0.8 },
-        medium: { windowScale: 1, fontScale: 1, paddingScale: 1, gapScale: 1 },
-        large: { windowScale: 1.2, fontScale: 1.2, paddingScale: 1.2, gapScale: 1.2 }
+        small: {
+            windowScale: 0.8,
+            fontScale: 0.8,
+            paddingScale: 0.8,
+            gapScale: 0.8
+        },
+        medium: {
+            windowScale: 1,
+            fontScale: 1,
+            paddingScale: 1,
+            gapScale: 1
+        },
+        large: {
+            windowScale: 1.2,
+            fontScale: 1.2,
+            paddingScale: 1.2,
+            gapScale: 1.2
+        }
     };
     return sizes[size] || sizes.medium;
   }
 
   getWindowSize() {
-    const { window_width, window_height } = this.config;
+    const width = this.config.window_width;
+    const height = this.config.window_height;
     const { windowScale } = this.getComponentSize();
-    const widths = { narrow: 160, medium: 200, wide: 260, 'extra-wide': 320 };
-    const heights = { short: 200, medium: 280, tall: 360, 'extra-tall': 440 };
+
+    const widths = {
+      narrow: 160 * windowScale + 'px',
+      medium: 200 * windowScale + 'px',
+      wide: 260 * windowScale + 'px',
+      'extra-wide': 320 * windowScale + 'px'
+    };
+
+    const heights = {
+      short: 200 * windowScale + 'px',
+      medium: 280 * windowScale + 'px',
+      tall: 360 * windowScale + 'px',
+      'extra-tall': 440 * windowScale + 'px'
+    };
+
     return {
-      width: (widths[window_width] || widths.medium) * windowScale + 'px',
-      height: (heights[window_height] || heights.medium) * windowScale + 'px'
+      width: widths[width] || widths.medium,
+      height: heights[height] || heights.medium
     };
-  }
-
-  getFrameMaterial() {
-    const { window_frame_material } = this.config;
-    const materials = {
-      pvc: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.1) 100%)',
-      wood: `repeating-linear-gradient(90deg, rgba(139, 69, 19, 0.1) 0px, rgba(160, 82, 45, 0.1) 2px, rgba(139, 69, 19, 0.1) 4px)`,
-      aluminum: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(0,0,0,0.1) 100%)'
-    };
-    return { texture: materials[window_frame_material] || materials.pvc };
-  }
-
-  getHandleStyle() {
-    if (!this.config.show_handle) return '';
-    const { handle_style, handle_position, handle_color } = this.config;
-    const pos = { left: '20%', center: '50%', right: '80%' }[handle_position];
-    const styles = {
-      modern: `<div class="handle-base" style="background: ${handle_color};"></div><div class="handle-lever" style="background: ${handle_color};"></div>`,
-      classic: `<div class="handle-knob" style="background: ${handle_color};"></div>`,
-      round: `<div class="handle-circle" style="background: ${handle_color};"></div>`
-    };
-    return `<div class="window-handle" style="left: ${pos};">${styles[handle_style] || styles.modern}</div>`;
-  }
-
-  getBlindStyle() {
-    const { blind_type, blind_color, blind_slat_color } = this.config;
-    const styles = {
-      roller: `background: ${blind_color};`,
-      venetian: `background: repeating-linear-gradient(0deg, ${blind_color} 0px, ${blind_color} 14px, ${blind_slat_color} 14px, ${blind_slat_color} 16px);`,
-      pleated: `background: repeating-linear-gradient(0deg, ${blind_color} 0px, ${blind_color} 8px, ${blind_slat_color} 8px, ${blind_slat_color} 10px, ${blind_color} 10px, ${blind_color} 18px, ${blind_slat_color} 18px, ${blind_slat_color} 20px);`,
-      curtain: `background: linear-gradient(90deg, ${blind_color} 0%, ${blind_slat_color} 10%, ${blind_color} 20%, ${blind_slat_color} 30%, ${blind_color} 40%, ${blind_slat_color} 50%, ${blind_color} 60%, ${blind_slat_color} 70%, ${blind_color} 80%, ${blind_slat_color} 90%, ${blind_color} 100%);`
-    };
-    return styles[blind_type] || styles.roller;
   }
 
   getWindowDividers() {
-    const { window_type } = this.config;
-    const dividers = {
-      double: '<div class="window-divider-v"></div>',
-      'four-panes': '<div class="window-divider-v"></div><div class="window-divider-h"></div>',
-      triple: '<div class="window-divider-v" style="left: 33.33%"></div><div class="window-divider-v" style="left: 66.66%"></div>',
-      bay: '<div class="window-divider-v"></div><div class="window-divider-h"></div>',
-      grid: '<div class="window-divider-v" style="left: 33.33%"></div><div class="window-divider-v" style="left: 66.66%"></div><div class="window-divider-h" style="top: 33.33%"></div><div class="window-divider-h" style="top: 66.66%"></div>'
-    };
-    return dividers[window_type] || '';
+    const type = this.config.window_type;
+
+    switch(type) {
+      case 'single':
+        return ''; // Pas de divisions
+
+      case 'double':
+        return `
+          <div class="window-divider-v"></div>
+        `;
+
+      case 'triple':
+        return `
+          <div class="window-divider-v" style="left: 33.33%"></div>
+          <div class="window-divider-v" style="left: 66.66%"></div>
+        `;
+
+      case 'bay':
+        return `
+          <div class="window-divider-v"></div>
+          <div class="window-divider-h"></div>
+        `;
+
+      case 'grid':
+        return `
+          <div class="window-divider-v" style="left: 33.33%"></div>
+          <div class="window-divider-v" style="left: 66.66%"></div>
+          <div class="window-divider-h" style="top: 33.33%"></div>
+          <div class="window-divider-h" style="top: 66.66%"></div>
+        `;
+
+      default:
+        return `
+          <div class="window-divider-v"></div>
+          <div class="window-divider-h"></div>
+        `;
+    }
   }
 
   getGlassStyle() {
-    const { glass_style } = this.config;
+    const style = this.config.glass_style;
+
     const styles = {
       clear: 'linear-gradient(135deg, #e8f4f8 0%, #d4e9f2 100%)',
       frosted: 'linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%)',
@@ -199,126 +133,357 @@ class WindowBlindCard extends HTMLElement {
       reflective: 'linear-gradient(135deg, #e8f0f8 0%, #c8dce8 100%)',
       stained: 'linear-gradient(135deg, #ffd4a8 0%, #ffb4a0 50%, #d4e8ff 100%)'
     };
-    return styles[glass_style] || styles.clear;
+
+    return styles[style] || styles.clear;
+  }
+
+  getGlassOpacity() {
+    const style = this.config.glass_style;
+    const opacities = {
+      clear: '0.1',
+      frosted: '0.3',
+      tinted: '0.25',
+      reflective: '0.15',
+      stained: '0.2'
+    };
+    return opacities[style] || '0.1';
   }
 
   render() {
-    const { name, show_preset_buttons, preset_positions, entities, show_sun_effects, show_weather_indicator } = this.config;
-    const { fontScale, paddingScale, gapScale } = this.getComponentSize();
-    const windowSize = this.getWindowSize();
+    const name = this.config.name;
     const glassStyle = this.getGlassStyle();
-    const glassOpacity = { clear: '0.1', frosted: '0.3', tinted: '0.25', reflective: '0.15', stained: '0.2' }[this.config.glass_style] || '0.1';
+    const glassOpacity = this.getGlassOpacity();
+    const blindColor = this.config.blind_color;
+    const blindSlatColor = this.config.blind_slat_color;
+    const windowSize = this.getWindowSize();
     const frameColor = this.config.window_frame_color;
-    const frameMaterial = this.getFrameMaterial();
-    const blindStyle = this.getBlindStyle();
-    const handleHTML = this.getHandleStyle();
-    const isMulti = entities.length > 0;
+    const { fontScale, paddingScale, gapScale } = this.getComponentSize();
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; position: relative; z-index: 0; }
-        .card { background: var(--ha-card-background, white); border-radius: var(--ha-card-border-radius, 12px); box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0,0,0,0.1)); overflow: hidden; }
-        .header { display: flex; align-items: center; gap: ${12 * gapScale}px; padding: ${16 * paddingScale}px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-bottom: 1px solid rgba(0,0,0,0.1); }
-        .header ha-icon { color: var(--primary-text-color); }
-        .header h2 { margin: 0; font-size: ${20 * fontScale}px; color: var(--primary-text-color); font-weight: 500; }
-        .window-container { padding: ${24 * paddingScale}px; background: #f5f5f5; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; transition: background 2s ease; position: relative; }
-        .window-wrapper { position: relative; }
-        .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); }
-        .weather-indicator { position: absolute; top: 8px; right: 8px; font-size: ${24 * fontScale}px; opacity: 0; transition: opacity 1s ease; pointer-events: none; z-index: 6; text-shadow: 0 0 5px rgba(255,255,255,0.5); }
-        .glass-glare { position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%); transform: skewX(-25deg); animation: glare 5s infinite linear; opacity: 0; transition: opacity 1s; }
-        @keyframes glare { 0% { left: -100%; } 100% { left: 150%; } }
-        .window-frame::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: ${frameMaterial.texture}; pointer-events: none; z-index: 1; }
-        .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; box-shadow: inset 0 0 2px rgba(0,0,0,0.3); }
-        .window-divider-v { left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); }
-        .window-divider-h { top: 50%; left: 0; width: 100%; height: 3px; transform: translateY(-50%); }
-        .blind { position: absolute; top: 0; left: 0; right: 0; ${blindStyle} transition: height 0.5s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 10; }
-        .controls { padding: ${16 * paddingScale}px; }
-        /* ... (autres styles) ... */
+        :host {
+          display: block;
+          position: relative;
+          z-index: 0;
+        }
+
+        .card {
+          background: var(--ha-card-background, white);
+          border-radius: var(--ha-card-border-radius, 12px);
+          box-shadow: var(--ha-card-box-shadow, 0 2px 8px rgba(0,0,0,0.1));
+          overflow: hidden;
+        }
+
+        .header {
+          display: flex;
+          align-items: center;
+          gap: ${12 * gapScale}px;
+          padding: ${16 * paddingScale}px;
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .header ha-icon {
+          color: var(--primary-text-color);
+        }
+
+        .header h2 {
+          margin: 0;
+          font-size: ${20 * fontScale}px;
+          color: var(--primary-text-color);
+          font-weight: 500;
+        }
+
+        .window-container {
+          padding: ${24 * paddingScale}px;
+          background: #f5f5f5;
+          display: flex;
+          justify-content: center;
+        }
+
+        .window-frame {
+          width: ${windowSize.width};
+          height: ${windowSize.height};
+          background: ${glassStyle};
+          border: 6px solid ${frameColor};
+          border-radius: 4px;
+          position: relative;
+          overflow: hidden;
+          box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity});
+        }
+
+        .window-divider-v {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          width: 3px;
+          height: 100%;
+          background: ${frameColor};
+          transform: translateX(-50%);
+          z-index: 5;
+        }
+
+        .window-divider-h {
+          position: absolute;
+          top: 50%;
+          left: 0;
+          width: 100%;
+          height: 3px;
+          background: ${frameColor};
+          transform: translateY(-50%);
+          z-index: 5;
+        }
+
+        .blind {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: repeating-linear-gradient(
+            0deg,
+            ${blindColor} 0px,
+            ${blindColor} 14px,
+            ${blindSlatColor} 14px,
+            ${blindSlatColor} 16px
+          );
+          transition: height 0.5s ease;
+          box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+          z-index: 10;
+        }
+
+        .controls {
+          padding: ${16 * paddingScale}px;
+        }
+
+        .position-display {
+          text-align: center;
+          margin-bottom: ${12 * paddingScale}px;
+        }
+
+        .position-value {
+          font-size: ${36 * fontScale}px;
+          font-weight: 600;
+          color: var(--primary-color);
+        }
+
+        .position-label {
+          font-size: ${14 * fontScale}px;
+          color: var(--secondary-text-color);
+        }
+
+        .slider-container {
+          margin: ${16 * paddingScale}px 0;
+        }
+
+        .slider {
+          width: 100%;
+          height: 6px;
+          border-radius: 3px;
+          outline: none;
+          -webkit-appearance: none;
+          background: linear-gradient(to right, #2196F3 0%, #FF9800 50%, #4CAF50 100%);
+          cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: white;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          border: 2px solid var(--primary-color);
+        }
+
+        .slider::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: white;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          border: 2px solid var(--primary-color);
+        }
+
+        .buttons {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: ${8 * gapScale}px;
+          margin-top: ${16 * paddingScale}px;
+        }
+
+        .btn {
+          padding: ${12 * paddingScale}px;
+          border: none;
+          border-radius: 8px;
+          font-size: ${13 * fontScale}px;
+          font-weight: 500;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: ${4 * gapScale}px;
+          transition: transform 0.2s, box-shadow 0.2s;
+          color: white;
+        }
+
+        .btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+          transform: translateY(0);
+        }
+
+        .btn-open {
+          background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+
+        .btn-stop {
+          background: linear-gradient(135deg, #FF9800, #f57c00);
+        }
+
+        .btn-close {
+          background: linear-gradient(135deg, #2196F3, #1976d2);
+        }
+
+        .icon {
+          font-size: ${20 * fontScale}px;
+        }
       </style>
-      
+
       <ha-card class="card">
-        <div class="header"><ha-icon icon="mdi:window-shutter"></ha-icon><h2>${name}</h2></div>
+        <div class="header">
+          <ha-icon icon="mdi:window-shutter"></ha-icon>
+          <h2>${name}</h2>
+        </div>
+
         <div class="window-container">
-          ${isMulti ? `<div class="multi-stores" id="multiStores"></div>` : ''}
-          <div class="window-wrapper">
-            <div class="window-frame">
-              <div class="glass-glare"></div>
-              ${show_weather_indicator ? `<div class="weather-indicator"></div>` : ''}
-              <div class="blind" id="blind"></div>
-              ${this.getWindowDividers()}
-              ${handleHTML}
-            </div>
+          <div class="window-frame">
+            <div class="blind" id="blind"></div>
+            ${this.getWindowDividers()}
           </div>
         </div>
+
         <div class="controls">
-          ${this.config.show_position_text ? `<div class="position-display"><div class="position-value" id="positionValue">0</div><div class="position-label">% ouvert</div></div>` : ''}
-          ${show_preset_buttons ? `<div class="preset-buttons">${preset_positions.map(pos => `<button class="preset-btn" data-position="${pos}">${pos}%</button>`).join('')}</div>` : ''}
-          <div class="slider-container"><input type="range" min="0" max="100" value="0" class="slider" id="slider"></div>
+          ${this.config.show_position_text ? `
+          <div class="position-display">
+            <div class="position-value" id="positionValue">0</div>
+            <div class="position-label">% ouvert</div>
+          </div>
+          ` : ''}
+
+          <div class="slider-container">
+            <input type="range" min="0" max="100" value="0" class="slider" id="slider">
+          </div>
+
           <div class="buttons">
-            <button class="btn btn-open" id="btnOpen"><span class="icon">↑</span><span>Ouvrir</span></button>
-            <button class="btn btn-stop" id="btnStop"><span class="icon">⏸</span><span>Stop</span></button>
-            <button class="btn btn-close" id="btnClose"><span class="icon">↓</span><span>Fermer</span></button>
+            <button class="btn btn-open" id="btnOpen">
+              <span class="icon">↑</span>
+              <span>Ouvrir</span>
+            </button>
+            <button class="btn btn-stop" id="btnStop">
+              <span class="icon">⏸</span>
+              <span>Stop</span>
+            </button>
+            <button class="btn btn-close" id="btnClose">
+              <span class="icon">↓</span>
+              <span>Fermer</span>
+            </button>
           </div>
         </div>
       </ha-card>
     `;
+
     this.setupEventListeners();
   }
 
   setupEventListeners() {
     const slider = this.shadowRoot.getElementById('slider');
-    slider.addEventListener('change', (e) => this.setPosition(parseInt(e.target.value)));
-    slider.addEventListener('input', (e) => this.updateVisual(parseInt(e.target.value)));
-    this.shadowRoot.getElementById('btnOpen').addEventListener('click', () => this.callService('open_cover'));
-    this.shadowRoot.getElementById('btnStop').addEventListener('click', () => this.callService('stop_cover'));
-    this.shadowRoot.getElementById('btnClose').addEventListener('click', () => this.callService('close_cover'));
-    this.shadowRoot.querySelectorAll('.preset-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => this.setPosition(parseInt(e.target.dataset.position)));
+    const btnOpen = this.shadowRoot.getElementById('btnOpen');
+    const btnStop = this.shadowRoot.getElementById('btnStop');
+    const btnClose = this.shadowRoot.getElementById('btnClose');
+
+    slider.addEventListener('change', (e) => {
+      this.setPosition(parseInt(e.target.value));
     });
-    if (this.config.entities.length > 0) this.setupMultiStoresListeners();
-  }
 
-  setupMultiStoresListeners() {
-    setTimeout(() => {
-      this.shadowRoot.querySelectorAll('.mini-window').forEach(win => {
-        win.addEventListener('click', (e) => {
-          this.config.entity = e.currentTarget.dataset.entity;
-          const entity = this._hass.states[this.config.entity];
-          if (entity) this.updateBlind(entity);
-        });
-      });
-    }, 100);
-  }
+    slider.addEventListener('input', (e) => {
+      this.updateVisual(parseInt(e.target.value));
+    });
 
-  updateMultiStores() {
-    const container = this.shadowRoot.getElementById('multiStores');
-    if (!container) return;
-    container.innerHTML = this.config.entities.map(entityId => {
-      const entity = this._hass.states[entityId];
-      if (!entity) return '';
-      return `<div class="mini-window" data-entity="${entityId}"><div class="mini-blind" style="height: ${100 - (entity.attributes.current_position || 0)}%;"></div><div class="mini-label">${entity.attributes.friendly_name || entityId}</div></div>`;
-    }).join('');
-    this.setupMultiStoresListeners();
+    btnOpen.addEventListener('click', () => {
+      this.callService('open_cover');
+    });
+
+    btnStop.addEventListener('click', () => {
+      this.callService('stop_cover');
+    });
+
+    btnClose.addEventListener('click', () => {
+      this.callService('close_cover');
+    });
   }
 
   updateBlind(entity) {
     const position = entity.attributes.current_position || 0;
     this.updateVisual(position);
-    this.shadowRoot.getElementById('slider').value = position;
-  }
 
-  updateVisual(position) {
-    this.shadowRoot.getElementById('blind').style.height = (100 - position) + '%';
-    if (this.config.show_position_text) {
-      this.shadowRoot.getElementById('positionValue').textContent = position;
+    const slider = this.shadowRoot.getElementById('slider');
+    if (slider) {
+      slider.value = position;
     }
   }
 
-  setPosition(position) { this._hass.callService('cover', 'set_cover_position', { entity_id: this.config.entity, position: position }); }
-  callService(service) { this._hass.callService('cover', service, { entity_id: this.config.entity }); }
-  getCardSize() { return 5; }
-  static getConfigElement() { return document.createElement('window-blind-card-editor'); }
-  static getStubConfig() { /* ... */ }
+  updateVisual(position) {
+    const blind = this.shadowRoot.getElementById('blind');
+    if (this.config.show_position_text) {
+        const positionValue = this.shadowRoot.getElementById('positionValue');
+        if (positionValue) {
+            positionValue.textContent = position;
+        }
+    }
+    if (blind) {
+      blind.style.height = (100 - position) + '%';
+    }
+  }
+
+  setPosition(position) {
+    this._hass.callService('cover', 'set_cover_position', {
+      entity_id: this.config.entity,
+      position: position
+    });
+  }
+
+  callService(service) {
+    this._hass.callService('cover', service, {
+      entity_id: this.config.entity
+    });
+  }
+
+  getCardSize() {
+    return 5;
+  }
+
+  static getConfigElement() {
+    return document.createElement('window-blind-card-editor');
+  }
+
+  static getStubConfig() {
+    return {
+      entity: 'cover.store',
+      name: 'Store',
+      size: 'medium',
+      show_position_text: true,
+      window_type: 'double',
+      window_width: 'medium',
+      window_height: 'medium',
+      window_frame_color: '#333333',
+      glass_style: 'clear'
+    };
+  }
 }
 
 class WindowBlindCardEditor extends HTMLElement {
@@ -328,74 +493,174 @@ class WindowBlindCardEditor extends HTMLElement {
     this._config = {};
   }
 
-  set hass(hass) { this._hass = hass; }
-  setConfig(config) { this._config = config; this.render(); }
+  set hass(hass) {
+    this._hass = hass;
+  }
+
+  setConfig(config) {
+    this._config = config;
+    this.render();
+  }
 
   render() {
-    if (!this._hass) return;
+    if (!this._hass) {
+      return;
+    }
+
     const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
+
     this.shadowRoot.innerHTML = `
       <style>
         .form-group { display: flex; flex-direction: column; margin-bottom: 12px; }
-        .checkbox-group { flex-direction: row; align-items: center; }
-        label { margin-bottom: 4px; font-weight: 500; }
-        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid var(--divider-color); border-radius: 4px; }
+        label { margin-bottom: 4px; font-weight: 500; color: var(--primary-text-color); }
+        input, select {
+          width: 100%;
+          padding: 8px;
+          box-sizing: border-box;
+          border: 1px solid var(--divider-color);
+          border-radius: 4px;
+          background: var(--input-fill-color);
+          color: var(--primary-text-color);
+        }
+        .color-input { padding: 2px; height: 38px; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; }
       </style>
       <div class="card-config">
-        <div class="form-group"><label>Entité Principale</label><select data-key="entity" id="entity">${entities.map(e => `<option value="${e}">${this._hass.states[e].attributes.friendly_name || e}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Entités Multiples (une par ligne)</label><textarea data-key="entities" id="entities" rows="3"></textarea></div>
-        <div class="form-group"><label>Nom</label><input type="text" data-key="name" id="name"></div>
-        <div class="form-group"><label>Taille</label><select data-key="size" id="size"><option value="small">Petit</option><option value="medium">Moyen</option><option value="large">Grand</option></select></div>
-        <div class="form-group checkbox-group"><input type="checkbox" data-key="show_sun_effects" id="show_sun_effects"><label for="show_sun_effects">Activer effets solaires</label></div>
-        <div class="form-group checkbox-group"><input type="checkbox" data-key="show_weather_indicator" id="show_weather_indicator"><label for="show_weather_indicator">Afficher indicateur météo</label></div>
-        <div class="form-group"><label>Orientation Fenêtre</label><select data-key="window_orientation" id="window_orientation"><option value="north">Nord</option><option value="east">Est</option><option value="south">Sud</option><option value="west">Ouest</option></select></div>
-        <!-- ... autres options ... -->
+        <div class="form-group">
+          <label for="entity">Entité (Entity)</label>
+          <select data-key="entity" id="entity">
+            ${entities.map(entity => `<option value="${entity}">${this._hass.states[entity].attributes.friendly_name || entity}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="name">Nom</label>
+          <input type="text" data-key="name" id="name">
+        </div>
+        <div class="form-group">
+            <label for="size">Taille du composant</label>
+            <select data-key="size" id="size">
+                <option value="small">Petit</option>
+                <option value="medium">Moyen</option>
+                <option value="large">Grand</option>
+            </select>
+        </div>
+        <div class="form-group checkbox-group">
+            <input type="checkbox" data-key="show_position_text" id="show_position_text">
+            <label for="show_position_text">Afficher le texte de position</label>
+        </div>
+        <div class="form-group">
+          <label for="window_type">Type de fenêtre</label>
+          <select data-key="window_type" id="window_type">
+            <option value="single">Simple</option>
+            <option value="double">Double</option>
+            <option value="triple">Triple</option>
+            <option value="bay">Baie vitrée</option>
+            <option value="grid">Grille</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_width">Largeur de la fenêtre</label>
+          <select data-key="window_width" id="window_width">
+            <option value="narrow">Étroite</option>
+            <option value="medium">Moyenne</option>
+            <option value="wide">Large</option>
+            <option value="extra-wide">Très large</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_height">Hauteur de la fenêtre</label>
+          <select data-key="window_height" id="window_height">
+            <option value="short">Basse</option>
+            <option value="medium">Moyenne</option>
+            <option value="tall">Haute</option>
+            <option value="extra-tall">Très haute</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="glass_style">Style du verre</label>
+          <select data-key="glass_style" id="glass_style">
+            <option value="clear">Clair</option>
+            <option value="frosted">Dépoli</option>
+            <option value="tinted">Teinté</option>
+            <option value="reflective">Réfléchissant</option>
+            <option value="stained">Vitrail</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="window_frame_color">Couleur du cadre</label>
+          <input type="color" class="color-input" data-key="window_frame_color" id="window_frame_color">
+        </div>
+        <div class="form-group">
+          <label for="blind_color">Couleur du store</label>
+          <input type="color" class="color-input" data-key="blind_color" id="blind_color">
+        </div>
+        <div class="form-group">
+          <label for="blind_slat_color">Couleur des lattes</label>
+          <input type="color" class="color-input" data-key="blind_slat_color" id="blind_slat_color">
+        </div>
       </div>
     `;
-    this._bindAll();
-  }
 
-  _bindAll() {
-    const defaults = {
-        entity: this._config.entity, name: 'Store', size: 'medium', entities: (this._config.entities || []).join('\n'),
-        show_sun_effects: false, show_weather_indicator: true, window_orientation: 'south', /* ... */
-    };
-    Object.keys(defaults).forEach(key => {
-        const el = this.shadowRoot.getElementById(key);
-        if (el) {
-            const prop = el.type === 'checkbox' ? 'checked' : 'value';
-            this._bind(key, prop, el.type === 'checkbox' ? 'change' : 'input', defaults[key]);
-        }
-    });
+    this._bind('entity', 'value', 'change');
+    this._bind('name', 'value', 'input', this._config.entity);
+    this._bind('size', 'value', 'change', 'medium');
+    this._bind('show_position_text', 'checked', 'change', true);
+    this._bind('window_type', 'value', 'change', 'double');
+    this._bind('window_width', 'value', 'change', 'medium');
+    this._bind('window_height', 'value', 'change', 'medium');
+    this._bind('glass_style', 'value', 'change', 'clear');
+    this._bind('window_frame_color', 'value', 'input', '#333333');
+    this._bind('blind_color', 'value', 'input', '#d4d4d4');
+    this._bind('blind_slat_color', 'value', 'input', '#999999');
   }
 
   _bind(id, prop, event, defaultValue) {
-    const el = this.shadowRoot.getElementById(id);
-    if (!el) return;
-    el[prop] = this._config[id] !== undefined ? this._config[id] : defaultValue;
-    el.addEventListener(event, (e) => this._valueChanged(e));
+      const element = this.shadowRoot.getElementById(id);
+      if (element) {
+          if (element.type === 'checkbox') {
+              element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          } else {
+              element[prop] = this._config[element.dataset.key] === undefined ? defaultValue : this._config[element.dataset.key];
+          }
+          element.addEventListener(event, (e) => this._valueChanged(e));
+      }
   }
 
   _valueChanged(ev) {
-    if (!this._config || !this._hass) return;
+    if (!this._config || !this._hass) {
+      return;
+    }
     const target = ev.target;
-    const key = target.id;
-    let value = target.type === 'checkbox' ? target.checked : target.value;
-    if (key === 'entities') value = value.split('\n').map(e => e.trim()).filter(e => e);
-    if (key === 'preset_positions') value = value.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p));
-    this._config = { ...this._config, [key]: value };
-    this.dispatchEvent(new CustomEvent("config-changed", { bubbles: true, composed: true, detail: { config: this._config } }));
+    const key = target.dataset.key;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+
+    if (this._config[key] !== value) {
+        const newConfig = { ...this._config, [key]: value };
+        this._config = newConfig;
+        const event = new CustomEvent("config-changed", {
+            bubbles: true,
+            composed: true,
+            detail: { config: newConfig },
+        });
+        this.dispatchEvent(event);
+    }
   }
 }
 
 customElements.define('window-blind-card', WindowBlindCard);
 customElements.define('window-blind-card-editor', WindowBlindCardEditor);
+
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'window-blind-card',
   name: 'Window Blind Card',
-  description: 'Une carte pour contrôler vos stores avec des effets visuels.',
+  description: 'Une carte élégante pour visualiser et contrôler vos stores avec types de fenêtres personnalisables',
   preview: true,
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
-console.info('%c WINDOW-BLIND-CARD %c Version 2.0.0e ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+
+console.info(
+  '%c WINDOW-BLIND-CARD %c Version 2.0.0 ',
+  'color: white; background: #2196F3; font-weight: 700;',
+  'color: #2196F3; background: white; font-weight: 700;'
+);
