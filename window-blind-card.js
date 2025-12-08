@@ -136,6 +136,7 @@ class WindowBlindCard extends HTMLElement {
     lightIntensity *= sunPos.intensity;
     
     const container = this.shadowRoot.querySelector('.window-container');
+    const frame = this.shadowRoot.querySelector('.window-frame');
     const sunlight = this.shadowRoot.querySelector('.sunlight-effect');
     const timeIndicator = this.shadowRoot.querySelector('.time-indicator');
     
@@ -158,6 +159,13 @@ class WindowBlindCard extends HTMLElement {
     if (sunlight) {
       sunlight.style.opacity = lightIntensity;
       sunlight.style.background = `radial-gradient(circle at ${50 + sunPos.angle}% ${100 - sunPos.height}%, rgba(255, 247, 160, ${lightIntensity * 0.4}) 0%, transparent 60%)`;
+    }
+    
+    if (frame) {
+        const shadowX = -sunPos.angle / 5;
+        const shadowY = sunPos.height / 5;
+        const shadowOpacity = lightIntensity * 0.2;
+        frame.style.boxShadow = `inset ${shadowX}px ${shadowY}px 30px 10px rgba(0,0,0,${shadowOpacity})`;
     }
     
     if (timeIndicator) {
@@ -291,7 +299,7 @@ class WindowBlindCard extends HTMLElement {
         .sunlight-effect { position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0; transition: opacity 1s ease; pointer-events: none; }
         .time-indicator { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.4); color: white; padding: 2px 6px; border-radius: 8px; font-size: 11px; font-weight: 600; }
         .window-wrapper { position: relative; }
-        .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); }
+        .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); transition: box-shadow 1s ease; }
         .window-frame::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: ${frameMaterial.texture}; pointer-events: none; z-index: 1; }
         .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; box-shadow: inset 0 0 2px rgba(0,0,0,0.3); }
         .window-divider-v { left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); }
