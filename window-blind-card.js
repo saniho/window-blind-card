@@ -265,10 +265,14 @@ class WindowBlindCard extends HTMLElement {
         }
 
         .sun-icon {
+          position: absolute;
+          top: 8px;
+          right: 8px;
           font-size: ${24 * fontScale}px;
           display: flex;
           align-items: center;
           color: #FFB300;
+          z-index: 12;
         }
 
         .sun-icon ha-icon {
@@ -511,9 +515,6 @@ class WindowBlindCard extends HTMLElement {
             <h2>${name}</h2>
           </div>
           <div class="header-right">
-            <div class="sun-icon" id="sunIcon">
-              <ha-icon icon="mdi:weather-sunny"></ha-icon>
-            </div>
             <div class="orientation-badge">
               <ha-icon icon="${this.getOrientationIcon()}"></ha-icon>
               <span>${this.getOrientationLabel()}</span>
@@ -523,6 +524,9 @@ class WindowBlindCard extends HTMLElement {
 
         <div class="window-container">
           <div class="window-frame">
+            <div class="sun-icon" id="sunIcon">
+              <ha-icon icon="mdi:weather-sunny"></ha-icon>
+            </div>
             <div class="blind" id="blind">
               <div class="light-rays" id="lightRays"></div>
             </div>
