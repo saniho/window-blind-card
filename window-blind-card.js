@@ -305,6 +305,17 @@ class WindowBlindCard extends HTMLElement {
           box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity});
         }
 
+        .window-light-effect {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: ${this.isSunlight() ? 'linear-gradient(135deg, rgba(255, 230, 100, 0.25) 0%, rgba(255, 200, 50, 0.1) 100%)' : 'none'};
+          z-index: 8;
+          pointer-events: none;
+        }
+
         .window-divider-v {
           position: absolute;
           left: 50%;
@@ -353,13 +364,24 @@ class WindowBlindCard extends HTMLElement {
           background: repeating-linear-gradient(
             ${this.getLightRaysRotation()}deg,
             transparent 0px,
-            transparent 13px,
-            rgba(255, 255, 255, ${this.isSunlight() ? '0.15' : '0'}) 13px,
-            rgba(255, 255, 255, ${this.isSunlight() ? '0.15' : '0'}) 14px,
-            transparent 14px,
+            transparent 12px,
+            rgba(255, 255, 255, ${this.isSunlight() ? '0.35' : '0'}) 12px,
+            rgba(255, 255, 255, ${this.isSunlight() ? '0.35' : '0'}) 15px,
+            transparent 15px,
             transparent 16px
           );
           z-index: 11;
+          pointer-events: none;
+        }
+
+        .window-light {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: ${this.isSunlight() ? 'linear-gradient(135deg, rgba(255, 230, 100, 0.2) 0%, rgba(255, 200, 50, 0.15) 100%)' : 'none'};
+          z-index: 9;
           pointer-events: none;
         }
 
@@ -485,6 +507,7 @@ class WindowBlindCard extends HTMLElement {
 
         <div class="window-container">
           <div class="window-frame">
+            <div class="window-light-effect" id="windowLightEffect"></div>
             <div class="blind" id="blind">
               <div class="light-rays" id="lightRays"></div>
             </div>
@@ -564,14 +587,32 @@ class WindowBlindCard extends HTMLElement {
 
   updateVisual(position) {
     const blind = this.shadowRoot.getElementById('blind');
+    const windowLightEffect = this.shadowRoot.getElementById('windowLightEffect');
+
     if (this.config.show_position_text) {
         const positionValue = this.shadowRoot.getElementById('positionValue');
         if (positionValue) {
             positionValue.textContent = position;
         }
     }
+
     if (blind) {
       blind.style.height = (100 - position) + '%';
+    }
+
+    // Ajuster l'intensité de la lumière solaire en fonction de la position du store
+    if (windowLightEffect) {
+      if (this.isSunlight()) {
+        // Plus le store est ouvert (position élevée), plus la lumière est intense
+        const lightIntensity = position / 100;
+        const baseOpacity = 0.25;
+        const maxOpacity = 0.35;
+        const opacity = baseOpacity + (maxOpacity - baseOpacity) * lightIntensity;
+        windowLightEffect.style.background = `linear-gradient(135deg, rgba(255, 230, 100, ${opacity}) 0%, rgba(255, 200, 50, ${opacity * 0.6}) 100%)`;
+      } else {
+        // La nuit, pas de lumière
+        windowLightEffect.style.background = 'none';
+      }
     }
   }
 
