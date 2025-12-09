@@ -266,13 +266,19 @@ class WindowBlindCard extends HTMLElement {
 
         .sun-icon {
           position: absolute;
-          top: 8px;
-          right: 8px;
+          top: 10px;
+          right: 10px;
           font-size: ${24 * fontScale}px;
           display: flex;
           align-items: center;
+          justify-content: center;
           color: #FFB300;
           z-index: 12;
+          width: ${32 * fontScale}px;
+          height: ${32 * fontScale}px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 50%;
+          backdrop-filter: blur(4px);
         }
 
         .sun-icon ha-icon {
