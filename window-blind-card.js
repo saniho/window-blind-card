@@ -195,6 +195,17 @@ class WindowBlindCard extends HTMLElement {
     }
   }
 
+  getLightGradientDirection() {
+    const orientation = this.config.window_orientation || 'south';
+    const directions = {
+      north: '180deg',    // Lumière venant du nord (du haut)
+      south: '0deg',      // Lumière venant du sud (du bas)
+      east: '90deg',      // Lumière venant de l'est (de droite)
+      west: '270deg'      // Lumière venant de l'ouest (de gauche)
+    };
+    return directions[orientation] || '0deg';
+  }
+
   getLightRaysRotation() {
     const orientation = this.config.window_orientation || 'south';
     const rotations = {
@@ -311,7 +322,7 @@ class WindowBlindCard extends HTMLElement {
           left: 0;
           right: 0;
           bottom: 0;
-          background: ${this.isSunlight() ? 'linear-gradient(135deg, rgba(255, 230, 100, 0.25) 0%, rgba(255, 200, 50, 0.1) 100%)' : 'none'};
+          background: ${this.isSunlight() ? `linear-gradient(${this.getLightGradientDirection()}, rgba(255, 220, 80, 0.4) 0%, rgba(255, 180, 50, 0.2) 50%, transparent 100%)` : 'none'};
           z-index: 8;
           pointer-events: none;
         }
@@ -605,10 +616,11 @@ class WindowBlindCard extends HTMLElement {
       if (this.isSunlight()) {
         // Plus le store est ouvert (position élevée), plus la lumière est intense
         const lightIntensity = position / 100;
-        const baseOpacity = 0.25;
-        const maxOpacity = 0.35;
-        const opacity = baseOpacity + (maxOpacity - baseOpacity) * lightIntensity;
-        windowLightEffect.style.background = `linear-gradient(135deg, rgba(255, 230, 100, ${opacity}) 0%, rgba(255, 200, 50, ${opacity * 0.6}) 100%)`;
+        const startOpacity = 0.3 + (0.1 * lightIntensity);  // De 0.3 à 0.4
+        const midOpacity = 0.15 + (0.1 * lightIntensity);   // De 0.15 à 0.25
+        const direction = this.getLightGradientDirection();
+
+        windowLightEffect.style.background = `linear-gradient(${direction}, rgba(255, 220, 80, ${startOpacity}) 0%, rgba(255, 180, 50, ${midOpacity}) 50%, transparent 100%)`;
       } else {
         // La nuit, pas de lumière
         windowLightEffect.style.background = 'none';
