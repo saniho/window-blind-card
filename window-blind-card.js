@@ -19,7 +19,7 @@ class WindowBlindCard extends HTMLElement {
       window_height: config.window_height || 'medium', // short, medium, tall, extra-tall
       window_frame_color: config.window_frame_color || '#333333', // Couleur du cadre
       blind_color: config.blind_color || '#d4d4d4',
-      blind_slat_color: config.blind_slat_color || '#999999',
+      blind_slat_color: config.blind_slat_color || '#666666',
       window_orientation: config.window_orientation || 'south', // north, south, east, west
       ...config
     };
@@ -314,6 +314,9 @@ class WindowBlindCard extends HTMLElement {
           position: relative;
           overflow: hidden;
           box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity});
+          -webkit-font-smoothing: antialiased;
+          -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
         }
 
         .window-light-effect {
@@ -322,7 +325,7 @@ class WindowBlindCard extends HTMLElement {
           left: 0;
           right: 0;
           bottom: 0;
-          background: ${this.isSunlight() ? `linear-gradient(${this.getLightGradientDirection()}, rgba(255, 220, 80, 0.4) 0%, rgba(255, 180, 50, 0.2) 50%, transparent 100%)` : 'none'};
+          background: none;
           z-index: 8;
           pointer-events: none;
         }
@@ -357,9 +360,11 @@ class WindowBlindCard extends HTMLElement {
           background: repeating-linear-gradient(
             0deg,
             ${blindColor} 0px,
-            ${blindColor} 14px,
-            ${blindSlatColor} 14px,
-            ${blindSlatColor} 16px
+            ${blindColor} 16px,
+            ${blindSlatColor} 16px,
+            ${blindSlatColor} 18px,
+            ${blindColor} 18px,
+            ${blindColor} 20px
           );
           transition: height 0.5s ease;
           box-shadow: 0 3px 6px rgba(0,0,0,0.2);
@@ -375,25 +380,25 @@ class WindowBlindCard extends HTMLElement {
           background: repeating-linear-gradient(
             ${this.getLightRaysRotation()}deg,
             transparent 0px,
-            transparent 12px,
-            rgba(255, 255, 255, ${this.isSunlight() ? '0.35' : '0'}) 12px,
-            rgba(255, 255, 255, ${this.isSunlight() ? '0.35' : '0'}) 15px,
             transparent 15px,
-            transparent 16px
+            rgba(255, 255, 255, ${this.isSunlight() ? '0.6' : '0'}) 15px,
+            rgba(255, 255, 255, ${this.isSunlight() ? '0.6' : '0'}) 18px,
+            transparent 18px,
+            transparent 20px
           );
           z-index: 11;
           pointer-events: none;
         }
 
-        .window-light {
+        .visible-light-zone {
           position: absolute;
-          top: 0;
+          bottom: 0;
           left: 0;
           right: 0;
-          bottom: 0;
-          background: ${this.isSunlight() ? 'linear-gradient(135deg, rgba(255, 230, 100, 0.2) 0%, rgba(255, 200, 50, 0.15) 100%)' : 'none'};
+          background: ${this.isSunlight() ? 'linear-gradient(180deg, transparent 0%, rgba(255, 220, 80, 0.15) 100%)' : 'none'};
           z-index: 9;
           pointer-events: none;
+          transition: height 0.5s ease;
         }
 
         .controls {
@@ -518,10 +523,10 @@ class WindowBlindCard extends HTMLElement {
 
         <div class="window-container">
           <div class="window-frame">
-            <div class="window-light-effect" id="windowLightEffect"></div>
             <div class="blind" id="blind">
               <div class="light-rays" id="lightRays"></div>
             </div>
+            <div class="visible-light-zone" id="visibleLightZone"></div>
             ${this.getWindowDividers()}
           </div>
         </div>
@@ -598,7 +603,7 @@ class WindowBlindCard extends HTMLElement {
 
   updateVisual(position) {
     const blind = this.shadowRoot.getElementById('blind');
-    const windowLightEffect = this.shadowRoot.getElementById('windowLightEffect');
+    const visibleLightZone = this.shadowRoot.getElementById('visibleLightZone');
 
     if (this.config.show_position_text) {
         const positionValue = this.shadowRoot.getElementById('positionValue');
@@ -611,19 +616,13 @@ class WindowBlindCard extends HTMLElement {
       blind.style.height = (100 - position) + '%';
     }
 
-    // Ajuster l'intensité de la lumière solaire en fonction de la position du store
-    if (windowLightEffect) {
-      if (this.isSunlight()) {
-        // Plus le store est ouvert (position élevée), plus la lumière est intense
-        const lightIntensity = position / 100;
-        const startOpacity = 0.3 + (0.1 * lightIntensity);  // De 0.3 à 0.4
-        const midOpacity = 0.15 + (0.1 * lightIntensity);   // De 0.15 à 0.25
-        const direction = this.getLightGradientDirection();
-
-        windowLightEffect.style.background = `linear-gradient(${direction}, rgba(255, 220, 80, ${startOpacity}) 0%, rgba(255, 180, 50, ${midOpacity}) 50%, transparent 100%)`;
+    // Afficher la zone de lumière visible uniquement quand le store est ouvert
+    if (visibleLightZone) {
+      if (this.isSunlight() && position > 0) {
+        visibleLightZone.style.height = position + '%';
+        visibleLightZone.style.display = 'block';
       } else {
-        // La nuit, pas de lumière
-        windowLightEffect.style.background = 'none';
+        visibleLightZone.style.display = 'none';
       }
     }
   }
@@ -660,7 +659,9 @@ class WindowBlindCard extends HTMLElement {
       window_height: 'medium',
       window_frame_color: '#333333',
       glass_style: 'clear',
-      window_orientation: 'south'
+      window_orientation: 'south',
+      blind_color: '#d4d4d4',
+      blind_slat_color: '#666666'
     };
   }
 }
@@ -800,7 +801,7 @@ class WindowBlindCardEditor extends HTMLElement {
     this._bind('glass_style', 'value', 'change', 'clear');
     this._bind('window_frame_color', 'value', 'input', '#333333');
     this._bind('blind_color', 'value', 'input', '#d4d4d4');
-    this._bind('blind_slat_color', 'value', 'input', '#999999');
+    this._bind('blind_slat_color', 'value', 'input', '#666666');
   }
 
   _bind(id, prop, event, defaultValue) {
