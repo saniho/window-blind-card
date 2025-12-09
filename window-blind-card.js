@@ -266,19 +266,20 @@ class WindowBlindCard extends HTMLElement {
 
         .sun-icon {
           position: absolute;
-          top: 10px;
-          right: 10px;
+          top: ${8 * paddingScale}px;
+          right: ${8 * paddingScale}px;
           font-size: ${24 * fontScale}px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #FFB300;
-          z-index: 12;
+          z-index: 20;
           width: ${32 * fontScale}px;
           height: ${32 * fontScale}px;
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.3);
           border-radius: 50%;
           backdrop-filter: blur(4px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .sun-icon ha-icon {
@@ -313,6 +314,7 @@ class WindowBlindCard extends HTMLElement {
           background: #f5f5f5;
           display: flex;
           justify-content: center;
+          position: relative;
         }
 
         .window-frame {
@@ -529,10 +531,10 @@ class WindowBlindCard extends HTMLElement {
         </div>
 
         <div class="window-container">
+          <div class="sun-icon" id="sunIcon">
+            <ha-icon icon="mdi:weather-sunny"></ha-icon>
+          </div>
           <div class="window-frame">
-            <div class="sun-icon" id="sunIcon">
-              <ha-icon icon="mdi:weather-sunny"></ha-icon>
-            </div>
             <div class="blind" id="blind">
               <div class="light-rays" id="lightRays"></div>
             </div>
