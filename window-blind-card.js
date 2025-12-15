@@ -16,14 +16,13 @@ class WindowBlindCard extends HTMLElement {
       name: config.name || 'Store',
       size: config.size || 'medium',
       show_position_text: config.show_position_text !== false,
-      show_weather_indicator: config.show_weather_indicator !== false,
       window_type: config.window_type || 'double',
       glass_style: config.glass_style || 'clear',
       window_width: config.window_width || 'medium',
       window_height: config.window_height || 'medium',
       window_frame_color: config.window_frame_color || '#333333',
-      window_frame_material: config.window_frame_material || 'pvc',
-      blind_type: config.blind_type || 'roller',
+      window_frame_material: config.window_frame_material || 'pvc', // pvc, wood, aluminum
+      blind_type: config.blind_type || 'roller', // roller, venetian, pleated, curtain
       blind_color: config.blind_color || '#d4d4d4',
       blind_slat_color: config.blind_slat_color || '#999999',
       show_handle: config.show_handle !== false,
