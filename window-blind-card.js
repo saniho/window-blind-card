@@ -46,36 +46,26 @@ class WindowBlindCard extends HTMLElement {
   }
 
   startSunTracking() {
-    this.updateSunIcon();
-    this.sunInterval = setInterval(() => this.updateSunIcon(), 60000);
+    this.updateSunEffects();
+    this.sunInterval = setInterval(() => this.updateSunEffects(), 60000);
   }
 
-  updateSunIcon() {
-    const sunIcon = this.shadowRoot.getElementById('sunIcon');
-    if (!sunIcon) return;
-
+  isSunlit() {
     const hour = new Date().getHours();
     const { window_orientation } = this.config;
-    let icon = 'mdi:weather-night';
-    let color = '#7986CB';
-    let isSunlit = false;
+    if (hour < 6 || hour >= 18) return false;
+    if (window_orientation === 'east' && hour >= 12) return false;
+    if (window_orientation === 'west' && hour < 12) return false;
+    if (window_orientation === 'north') return false;
+    return true;
+  }
 
-    if (hour >= 6 && hour < 18) {
-      if (
-        (window_orientation === 'east' && hour < 12) ||
-        (window_orientation === 'west' && hour >= 12) ||
-        window_orientation === 'south'
-      ) {
-        isSunlit = true;
-      }
+  updateSunEffects() {
+    const sunIcon = this.shadowRoot.getElementById('sunIcon');
+    if (sunIcon) {
+      sunIcon.style.display = this.isSunlit() ? 'flex' : 'none';
     }
-
-    if (isSunlit) {
-      icon = 'mdi:weather-sunny';
-      color = '#FFB300';
-    }
-
-    sunIcon.innerHTML = `<ha-icon icon="${icon}" style="color: ${color};"></ha-icon>`;
+    this.updateVisual(this._hass.states[this.config.entity].attributes.current_position || 0);
   }
 
   getComponentSize() {
@@ -161,9 +151,10 @@ class WindowBlindCard extends HTMLElement {
         .header-left { display: flex; align-items: center; gap: ${12 * gapScale}px; }
         .header ha-icon { color: var(--primary-text-color); }
         .header h2 { margin: 0; font-size: ${20 * fontScale}px; color: var(--primary-text-color); font-weight: 500; }
-        .sun-icon { font-size: ${24 * fontScale}px; }
+        .sun-icon { font-size: ${24 * fontScale}px; color: #FFB300; }
         .window-container { padding: ${24 * paddingScale}px; background: #f5f5f5; display: flex; justify-content: center; }
         .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); }
+        .visible-light-zone { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, transparent 0%, rgba(255, 220, 80, 0.15) 100%); z-index: 9; pointer-events: none; transition: height 0.5s ease; display: none; }
         .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; }
         .window-divider-v { left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); }
         .window-divider-h { top: 50%; left: 0; width: 100%; height: 3px; transform: translateY(-50%); }
@@ -189,10 +180,11 @@ class WindowBlindCard extends HTMLElement {
             <ha-icon icon="mdi:window-shutter"></ha-icon>
             <h2>${name}</h2>
           </div>
-          <div class="sun-icon" id="sunIcon"></div>
+          <div class="sun-icon" id="sunIcon"><ha-icon icon="mdi:weather-sunny"></ha-icon></div>
         </div>
         <div class="window-container">
           <div class="window-frame">
+            <div class="visible-light-zone" id="visibleLightZone"></div>
             <div class="blind" id="blind"></div>
             ${this.getWindowDividers()}
           </div>
@@ -231,6 +223,16 @@ class WindowBlindCard extends HTMLElement {
     this.shadowRoot.getElementById('blind').style.height = (100 - position) + '%';
     if (this.config.show_position_text) {
       this.shadowRoot.getElementById('positionValue').textContent = position;
+    }
+
+    const visibleLightZone = this.shadowRoot.getElementById('visibleLightZone');
+    if (visibleLightZone) {
+      if (this.isSunlit() && position > 0) {
+        visibleLightZone.style.height = position + '%';
+        visibleLightZone.style.display = 'block';
+      } else {
+        visibleLightZone.style.display = 'none';
+      }
     }
   }
 
