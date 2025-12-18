@@ -70,24 +70,11 @@ class WindowBlindCard extends HTMLElement {
     if (!this._hass) return;
 
     const sunIcon = this.shadowRoot.getElementById('sunIcon');
-    const visibleLightZone = this.shadowRoot.getElementById('visibleLightZone');
-    const entityState = this._hass.states[this.config.entity];
-    const position = entityState ? entityState.attributes.current_position || 0 : 0;
-    const sunlit = this.isSunlit();
-
     if (sunIcon) {
+      const sunlit = this.isSunlit();
       const icon = sunlit ? 'mdi:weather-sunny' : 'mdi:weather-night';
       const color = sunlit ? '#FFB300' : '#7986CB';
       sunIcon.innerHTML = `<ha-icon icon="${icon}" style="color: ${color};"></ha-icon>`;
-    }
-
-    if (visibleLightZone) {
-      if (sunlit && position > 0) {
-        visibleLightZone.style.height = `${position}%`;
-        visibleLightZone.style.display = 'block';
-      } else {
-        visibleLightZone.style.display = 'none';
-      }
     }
   }
 
@@ -158,7 +145,6 @@ class WindowBlindCard extends HTMLElement {
         .sun-icon { font-size: ${24 * fontScale}px; }
         .window-container { padding: ${24 * paddingScale}px; background: #f5f5f5; display: flex; justify-content: center; }
         .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); }
-        .visible-light-zone { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, transparent 0%, rgba(255, 220, 80, 0.15) 100%); z-index: 9; pointer-events: none; transition: height 0.5s ease; display: none; }
         .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; }
         .window-divider-v { left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); }
         .window-divider-h { top: 50%; left: 0; width: 100%; height: 3px; transform: translateY(-50%); }
@@ -188,7 +174,6 @@ class WindowBlindCard extends HTMLElement {
         </div>
         <div class="window-container">
           <div class="window-frame">
-            <div class="visible-light-zone" id="visibleLightZone"></div>
             <div class="blind" id="blind"></div>
             ${this.getWindowDividers()}
           </div>
@@ -221,7 +206,6 @@ class WindowBlindCard extends HTMLElement {
     const position = entity.attributes.current_position || 0;
     this.updateVisual(position);
     this.shadowRoot.getElementById('slider').value = position;
-    this.updateSunEffects(); // Update sun effects when blind position changes
   }
 
   updateVisual(position) {
@@ -247,21 +231,17 @@ class WindowBlindCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    if (!this._configRendered) {
-      this.render();
-    }
+    this.render();
   }
 
   setConfig(config) {
     this._config = config;
-    if (this._hass) {
-      this.render();
-    }
   }
 
   render() {
-    if (!this._hass) return;
-    this._configRendered = true;
+    if (!this._hass) {
+      return;
+    }
 
     const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
     this.shadowRoot.innerHTML = `
@@ -272,36 +252,29 @@ class WindowBlindCardEditor extends HTMLElement {
         input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid var(--divider-color); border-radius: 4px; }
       </style>
       <div class="card-config">
-        <div class="form-group"><label>Entité</label><select data-key="entity" id="entity">${entities.map(e => `<option value="${e}" ${this._config.entity === e ? 'selected' : ''}>${this._hass.states[e].attributes.friendly_name || e}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Nom</label><input type="text" data-key="name" id="name"></div>
-        <div class="form-group"><label>Taille</label><select data-key="size" id="size"><option value="small">Petit</option><option value="medium">Moyen</option><option value="large">Grand</option></select></div>
-        <div class="form-group checkbox-group"><input type="checkbox" data-key="show_position_text" id="show_position_text"><label for="show_position_text">Afficher texte position</label></div>
-        <div class="form-group"><label>Orientation Fenêtre</label><select data-key="window_orientation" id="window_orientation"><option value="north">Nord</option><option value="east">Est</option><option value="south">Sud</option><option value="west">Ouest</option></select></div>
-        <div class="form-group"><label>Type de Fenêtre</label><select data-key="window_type" id="window_type"><option value="single">Simple</option><option value="double">Double</option><option value="four-panes">4 Carreaux</option><option value="triple">Triple</option><option value="bay">Baie</option><option value="grid">Grille</option></select></div>
-        <div class="form-group"><label>Largeur Fenêtre</label><select data-key="window_width" id="window_width"><option value="narrow">Étroite</option><option value="medium">Moyenne</option><option value="wide">Large</option><option value="extra-wide">Très Large</option></select></div>
-        <div class="form-group"><label>Hauteur Fenêtre</label><select data-key="window_height" id="window_height"><option value="short">Basse</option><option value="medium">Moyenne</option><option value="tall">Haute</option><option value="extra-tall">Très Haute</option></select></div>
-        <div class="form-group"><label>Style du Verre</label><select data-key="glass_style" id="glass_style"><option value="clear">Clair</option><option value="frosted">Dépoli</option><option value="tinted">Teinté</option><option value="reflective">Réfléchissant</option><option value="stained">Vitrail</option></select></div>
-        <div class="form-group"><label>Couleur du Cadre</label><input type="color" class="color-input" data-key="window_frame_color" id="window_frame_color"></div>
-        <div class="form-group"><label>Couleur du Store</label><input type="color" class="color-input" data-key="blind_color" id="blind_color"></div>
-        <div class="form-group"><label>Couleur des Lattes</label><input type="color" class="color-input" data-key="blind_slat_color" id="blind_slat_color"></div>
+        <div class="form-group"><label>Entité</label><select data-key="entity">${entities.map(e => `<option value="${e}" ${this._config.entity === e ? 'selected' : ''}>${this._hass.states[e].attributes.friendly_name || e}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Nom</label><input type="text" data-key="name"></div>
+        <div class="form-group"><label>Taille</label><select data-key="size"><option value="small">Petit</option><option value="medium">Moyen</option><option value="large">Grand</option></select></div>
+        <div class="form-group checkbox-group"><input type="checkbox" data-key="show_position_text"><label>Afficher texte position</label></div>
+        <div class="form-group"><label>Orientation Fenêtre</label><select data-key="window_orientation"><option value="north">Nord</option><option value="east">Est</option><option value="south">Sud</option><option value="west">Ouest</option></select></div>
+        <div class="form-group"><label>Type de Fenêtre</label><select data-key="window_type"><option value="single">Simple</option><option value="double">Double</option><option value="four-panes">4 Carreaux</option><option value="triple">Triple</option><option value="bay">Baie</option><option value="grid">Grille</option></select></div>
+        <div class="form-group"><label>Largeur Fenêtre</label><select data-key="window_width"><option value="narrow">Étroite</option><option value="medium">Moyenne</option><option value="wide">Large</option><option value="extra-wide">Très Large</option></select></div>
+        <div class="form-group"><label>Hauteur Fenêtre</label><select data-key="window_height"><option value="short">Basse</option><option value="medium">Moyenne</option><option value="tall">Haute</option><option value="extra-tall">Très Haute</option></select></div>
+        <div class="form-group"><label>Style du Verre</label><select data-key="glass_style"><option value="clear">Clair</option><option value="frosted">Dépoli</option><option value="tinted">Teinté</option><option value="reflective">Réfléchissant</option><option value="stained">Vitrail</option></select></div>
+        <div class="form-group"><label>Couleur du Cadre</label><input type="color" data-key="window_frame_color"></div>
+        <div class="form-group"><label>Couleur du Store</label><input type="color" data-key="blind_color"></div>
+        <div class="form-group"><label>Couleur des Lattes</label><input type="color" data-key="blind_slat_color"></div>
       </div>
     `;
-    this._bindAll();
+    this._bindValues();
   }
 
-  _bindAll() {
-    const defaults = {
-        entity: this._config.entity, name: 'Store', size: 'medium', show_position_text: true, window_orientation: 'south',
-        window_type: 'double', window_width: 'medium', window_height: 'medium', glass_style: 'clear',
-        window_frame_color: '#333333', blind_color: '#d4d4d4', blind_slat_color: '#999999'
-    };
-    Object.keys(defaults).forEach(key => {
-        const el = this.shadowRoot.querySelector(`[data-key="${key}"]`);
-        if (el) {
-            const prop = el.type === 'checkbox' ? 'checked' : 'value';
-            el[prop] = this._config[key] !== undefined ? this._config[key] : defaults[key];
-            el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', (e) => this._valueChanged(e));
-        }
+  _bindValues() {
+    this.shadowRoot.querySelectorAll('[data-key]').forEach(el => {
+      const key = el.dataset.key;
+      const prop = el.type === 'checkbox' ? 'checked' : 'value';
+      el[prop] = this._config[key] !== undefined ? this._config[key] : el[prop];
+      el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', (e) => this._valueChanged(e));
     });
   }
 
