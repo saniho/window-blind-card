@@ -10,13 +10,14 @@ Une carte Lovelace élégante et animée pour visualiser et contrôler vos store
 ## ✨ Fonctionnalités
 
 - 🎨 **Animation fluide** - Le store monte et descend en temps réel
-- 🪟 **5 types de fenêtres** - Simple, Double, Triple, Baie vitrée, Grille
+- 🪟 **6 types de fenêtres** - Simple, Double, 4 Carreaux, Triple, Baie vitrée, Grille
 - 📏 **Dimensions personnalisables** - 4 largeurs et 4 hauteurs
-- 🖼️ **Couleur de cadre** - Noir, blanc, bois, PVC gris, personnalisé
+- 🖼️ **Couleur de cadre** - Personnalisable
 - 🎭 **5 styles de vitrage** - Clair, Dépoli, Teinté, Réfléchissant, Vitrail
 - 🌈 **Couleurs personnalisables** - Choisissez la couleur de votre store
 - 🎚️ **Contrôle intuitif** - Curseur et boutons pour un contrôle facile
-- 📱 **Responsive** - Fonctionne sur mobile, tablette et desktop
+- 📱 **Responsive** - S'adapte à toutes les tailles d'écran (Petit, Moyen, Grand)
+- ⚙️ **Options d'affichage** - Masquez le texte de position pour un look minimaliste
 
 ## 🚀 Installation rapide
 
@@ -33,77 +34,96 @@ Téléchargez `window-blind-card.js` et placez-le dans `/config/www/`
 
 Ajoutez la ressource dans Configuration → Tableaux de bord → Ressources
 
-## 📝 Configuration rapide
+## 📝 Configuration
+
+### Interface Utilisateur (UI)
+
+Vous pouvez configurer la carte facilement via l'éditeur visuel de Home Assistant.
+
+![UI Editor](https://via.placeholder.com/600x400?text=UI+Editor+Screenshot)
+
+### YAML
+
+| Paramètre | Défaut | Options | Description |
+|-----------|--------|---------|-------------|
+| `entity` | *requis* | ID de votre `cover` | L'entité du store à contrôler. |
+| `name` | "Store" | Texte libre | Le nom affiché en haut de la carte. |
+| `size` | "medium" | `small`, `medium`, `large` | Ajuste la taille globale de la carte. |
+| `show_position_text` | `true` | `true`, `false` | Affiche ou masque le texte "% ouvert". |
+| `window_type` | "double" | `single`, `double`, `four-panes`, `triple`, `bay`, `grid` | Le style de la fenêtre. |
+| `window_width` | "medium" | `narrow`, `medium`, `wide`, `extra-wide` | La largeur de la fenêtre. |
+| `window_height` | "medium" | `short`, `medium`, `tall`, `extra-tall` | La hauteur de la fenêtre. |
+| `glass_style` | "clear" | `clear`, `frosted`, `tinted`, `reflective`, `stained` | L'apparence du vitrage. |
+| `window_frame_color` | "#333333" | Code couleur hex | La couleur du cadre de la fenêtre. |
+| `blind_color` | "#d4d4d4" | Code couleur hex | La couleur principale du store. |
+| `blind_slat_color` | "#999999" | Code couleur hex | La couleur des lignes des lattes. |
+
+## 🖼️ Exemples de configuration
+
+### 1. Configuration de base
+
+Une carte de taille moyenne avec une fenêtre double standard.
+
 ```yaml
 type: custom:window-blind-card
 entity: cover.votre_store
 name: Mon Store
-window_type: bay              # single, double, triple, bay, grid
-window_width: wide            # narrow, medium, wide, extra-wide
-window_height: tall           # short, medium, tall, extra-tall
-window_frame_color: '#8B4513' # Couleur cadre (noir, blanc, bois, etc.)
-glass_style: frosted          # clear, frosted, tinted, reflective, stained
-blind_color: '#2196F3'
-blind_slat_color: '#1565C0'
 ```
+![Exemple 1](https://via.placeholder.com/400x300?text=Exemple+de+base)
+**Résultat :** Une carte simple et fonctionnelle, idéale pour un contrôle rapide.
 
-## 🎯 Tous les paramètres
+### 2. Grande fenêtre de salon
 
-| Paramètre | Défaut | Options |
-|-----------|--------|---------|
-| `entity` | *requis* | ID de votre cover |
-| `name` | "Store" | Texte libre |
-| `window_type` | "double" | single, double, triple, bay, grid |
-| `window_width` | "medium" | narrow, medium, wide, extra-wide |
-| `window_height` | "medium" | short, medium, tall, extra-tall |
-| `glass_style` | "clear" | clear, frosted, tinted, reflective, stained |
-| `blind_color` | "#d4d4d4" | Code couleur hex |
-| `blind_slat_color` | "#999999" | Code couleur hex |
+Une grande baie vitrée pour un salon moderne, avec une taille de composant augmentée.
 
-## 🖼️ Exemples visuels
-
-### Grande porte-fenêtre moderne
 ```yaml
 type: custom:window-blind-card
 entity: cover.salon
+name: Store du Salon
+size: large
 window_type: bay
 window_width: extra-wide
 window_height: tall
 window_frame_color: '#000000'
 glass_style: clear
 ```
+![Exemple 2](https://via.placeholder.com/400x300?text=Grande+fenêtre+de+salon)
+**Résultat :** Une carte imposante qui simule une grande baie vitrée, parfaite pour un tableau de bord principal.
 
-### Petite fenêtre salle de bain
+### 3. Petite fenêtre de salle de bain
+
+Une petite fenêtre avec un vitrage dépoli pour plus d'intimité.
+
 ```yaml
 type: custom:window-blind-card
-entity: cover.sdb
-window_type: double
+entity: cover.salle_de_bain
+name: Store SDB
+size: small
+window_type: single
 window_width: narrow
 window_height: short
-window_frame_color: '#FFFFFF'
 glass_style: frosted
+show_position_text: false
 ```
+![Exemple 3](https://via.placeholder.com/400x300?text=Petite+fenêtre+de+salle+de+bain)
+**Résultat :** Une carte compacte et discrète, avec le texte de position masqué pour un look minimaliste.
 
-### Fenêtre cathédrale bureau
+### 4. Fenêtre de bureau à 4 carreaux
+
+Une fenêtre de taille moyenne avec 4 carreaux et un cadre en bois.
+
 ```yaml
 type: custom:window-blind-card
 entity: cover.bureau
-window_type: triple
-window_width: wide
-window_height: extra-tall
+name: Store Bureau
+window_type: four-panes
+window_width: medium
+window_height: medium
 window_frame_color: '#8B4513'
 glass_style: tinted
 ```
-
-Voir [info.md](info.md) pour plus d'exemples et la documentation complète.
-
-## 🎨 Inspiration couleurs
-
-- **Blanc moderne** : `#FFFFFF` / `#E0E0E0`
-- **Gris anthracite** : `#424242` / `#212121`
-- **Bleu océan** : `#1976D2` / `#0D47A1`
-- **Vert nature** : `#4CAF50` / `#2E7D32`
-- **Beige chaleureux** : `#FFCC80` / `#FF9800`
+![Exemple 4](https://via.placeholder.com/400x300?text=Fenêtre+de+bureau+à+4+carreaux)
+**Résultat :** Une carte au style classique qui s'intègre bien dans un environnement de bureau.
 
 ## 🤝 Contribution
 
