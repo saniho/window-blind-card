@@ -3,32 +3,55 @@ class WindowBlindCardEditor extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this._config = {};
+    this._hass = null;
   }
 
   set hass(hass) {
     this._hass = hass;
-    // Rendre seulement si hass est défini et a des états
-    if (this._hass && this._hass.states) {
-      this.render();
-    }
+    // Toujours rendre quand hass change
+    this.render();
   }
 
   setConfig(config) {
-    this._config = config;
-    // Rendre seulement si hass est déjà disponible
-    if (this._hass && this._hass.states) {
+    this._config = { ...config };
+    // Ne rendre que si on a déjà hass
+    if (this._hass) {
       this.render();
     }
   }
 
   render() {
-    // Vérification de sécurité
-    if (!this._hass || !this._hass.states) {
-      this.shadowRoot.innerHTML = '<div>Chargement...</div>';
+    // Vérification stricte de hass
+    if (!this._hass || !this._hass.states || typeof this._hass.states !== 'object') {
+      this.shadowRoot.innerHTML = `
+        <div style="padding: 16px; text-align: center;">
+          <p>Chargement de la configuration...</p>
+        </div>
+      `;
       return;
     }
 
-    const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
+    // Récupérer les entités cover en toute sécurité
+    let entities = [];
+    try {
+      entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
+      if (entities.length === 0) {
+        this.shadowRoot.innerHTML = `
+          <div style="padding: 16px; color: orange;">
+            <p>Aucune entité "cover" trouvée dans votre système.</p>
+          </div>
+        `;
+        return;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des entités:', error);
+      this.shadowRoot.innerHTML = `
+        <div style="padding: 16px; color: red;">
+          <p>Erreur lors du chargement des entités</p>
+        </div>
+      `;
+      return;
+    }
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -41,7 +64,12 @@ class WindowBlindCardEditor extends HTMLElement {
         <div class="form-group">
           <label>Entité</label>
           <select data-key="entity">
-            ${entities.map(e => `<option value="${e}">${this._hass.states[e].attributes.friendly_name || e}</option>`).join('')}
+            <option value="">-- Sélectionnez une entité --</option>
+            ${entities.map(e => {
+              const state = this._hass.states[e];
+              const name = (state && state.attributes && state.attributes.friendly_name) || e;
+              return `<option value="${e}">${name}</option>`;
+            }).join('')}
           </select>
         </div>
         <div class="form-group">
@@ -127,11 +155,21 @@ class WindowBlindCardEditor extends HTMLElement {
   }
 
   _bindValues() {
+    if (!this.shadowRoot) return;
+
     const defaults = WindowBlindCard.getStubConfig();
-    this.shadowRoot.querySelectorAll('[data-key]').forEach(el => {
+    const elements = this.shadowRoot.querySelectorAll('[data-key]');
+
+    elements.forEach(el => {
       const key = el.dataset.key;
       const prop = el.type === 'checkbox' ? 'checked' : 'value';
-      el[prop] = this._config[key] !== undefined ? this._config[key] : (defaults[key] !== undefined ? defaults[key] : el[prop]);
+
+      // Utiliser la valeur de config, sinon la valeur par défaut
+      if (this._config[key] !== undefined) {
+        el[prop] = this._config[key];
+      } else if (defaults[key] !== undefined) {
+        el[prop] = defaults[key];
+      }
     });
   }
 
