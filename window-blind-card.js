@@ -30,9 +30,12 @@ class WindowBlindCard extends HTMLElement {
     const isFirstUpdate = !this._hass;
     this._hass = hass;
 
-    const entity = hass.states[this.config.entity];
-    if (entity) {
-      this.updateBlind(entity);
+    // Vérifier que config existe avant d'accéder à l'entité
+    if (this.config && this.config.entity && hass && hass.states) {
+      const entity = hass.states[this.config.entity];
+      if (entity) {
+        this.updateBlind(entity);
+      }
     }
 
     if (isFirstUpdate) {
@@ -203,20 +206,47 @@ class WindowBlindCard extends HTMLElement {
   }
 
   updateBlind(entity) {
+    if (!entity || !entity.attributes) return;
+
     const position = entity.attributes.current_position || 0;
     this.updateVisual(position);
-    this.shadowRoot.getElementById('slider').value = position;
-  }
 
-  updateVisual(position) {
-    this.shadowRoot.getElementById('blind').style.height = (100 - position) + '%';
-    if (this.config.show_position_text) {
-      this.shadowRoot.getElementById('positionValue').textContent = position;
+    const slider = this.shadowRoot.getElementById('slider');
+    if (slider) {
+      slider.value = position;
     }
   }
 
-  setPosition(position) { this._hass.callService('cover', 'set_cover_position', { entity_id: this.config.entity, position: position }); }
-  callService(service) { this._hass.callService('cover', service, { entity_id: this.config.entity }); }
+  updateVisual(position) {
+    const blind = this.shadowRoot.getElementById('blind');
+    if (blind) {
+      blind.style.height = (100 - position) + '%';
+    }
+
+    if (this.config && this.config.show_position_text) {
+      const positionValue = this.shadowRoot.getElementById('positionValue');
+      if (positionValue) {
+        positionValue.textContent = position;
+      }
+    }
+  }
+
+  setPosition(position) {
+    if (this._hass && this.config && this.config.entity) {
+      this._hass.callService('cover', 'set_cover_position', {
+        entity_id: this.config.entity,
+        position: position
+      });
+    }
+  }
+
+  callService(service) {
+    if (this._hass && this.config && this.config.entity) {
+      this._hass.callService('cover', service, {
+        entity_id: this.config.entity
+      });
+    }
+  }
   getCardSize() { return 5; }
   static getConfigElement() { return document.createElement('window-blind-card-editor'); }
   static getStubConfig() {
