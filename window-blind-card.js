@@ -245,11 +245,24 @@ class WindowBlindCardEditor extends HTMLElement {
     this._config = {};
   }
 
-  set hass(hass) { this._hass = hass; }
-  setConfig(config) { this._config = config; this.render(); }
+  set hass(hass) {
+    this._hass = hass;
+    if (!this._configRendered) {
+      this.render();
+    }
+  }
+
+  setConfig(config) {
+    this._config = config;
+    if (this._hass) {
+      this.render();
+    }
+  }
 
   render() {
     if (!this._hass) return;
+    this._configRendered = true;
+
     const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('cover.'));
     this.shadowRoot.innerHTML = `
       <style>
