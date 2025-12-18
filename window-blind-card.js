@@ -24,19 +24,24 @@ class WindowBlindCard extends HTMLElement {
       ...config
     };
     this.render();
-    this.startSunTracking();
   }
 
   set hass(hass) {
+    const isFirstUpdate = !this._hass;
     this._hass = hass;
+
     const entity = hass.states[this.config.entity];
     if (entity) {
       this.updateBlind(entity);
     }
+
+    if (isFirstUpdate) {
+      this.startSunTracking();
+    }
   }
 
   connectedCallback() {
-    this.startSunTracking();
+    // Defer starting sun tracking until hass is set
   }
 
   disconnectedCallback() {
@@ -46,11 +51,12 @@ class WindowBlindCard extends HTMLElement {
   }
 
   startSunTracking() {
-    this.updateSunEffects();
+    this.updateSunEffects(); // Initial call
     this.sunInterval = setInterval(() => this.updateSunEffects(), 60000);
   }
 
   isSunlit() {
+    if (!this._hass) return false;
     const hour = new Date().getHours();
     const { window_orientation } = this.config;
     if (hour < 6 || hour >= 18) return false;
@@ -61,11 +67,28 @@ class WindowBlindCard extends HTMLElement {
   }
 
   updateSunEffects() {
+    if (!this._hass) return;
+
     const sunIcon = this.shadowRoot.getElementById('sunIcon');
+    const visibleLightZone = this.shadowRoot.getElementById('visibleLightZone');
+    const entityState = this._hass.states[this.config.entity];
+    const position = entityState ? entityState.attributes.current_position || 0 : 0;
+    const sunlit = this.isSunlit();
+
     if (sunIcon) {
-      sunIcon.style.display = this.isSunlit() ? 'flex' : 'none';
+      const icon = sunlit ? 'mdi:weather-sunny' : 'mdi:weather-night';
+      const color = sunlit ? '#FFB300' : '#7986CB';
+      sunIcon.innerHTML = `<ha-icon icon="${icon}" style="color: ${color};"></ha-icon>`;
     }
-    this.updateVisual(this._hass.states[this.config.entity].attributes.current_position || 0);
+
+    if (visibleLightZone) {
+      if (sunlit && position > 0) {
+        visibleLightZone.style.height = `${position}%`;
+        visibleLightZone.style.display = 'block';
+      } else {
+        visibleLightZone.style.display = 'none';
+      }
+    }
   }
 
   getComponentSize() {
@@ -82,24 +105,11 @@ class WindowBlindCard extends HTMLElement {
     const width = this.config.window_width;
     const height = this.config.window_height;
     const { windowScale } = this.getComponentSize();
-
-    const widths = {
-      narrow: 160 * windowScale + 'px',
-      medium: 200 * windowScale + 'px',
-      wide: 260 * windowScale + 'px',
-      'extra-wide': 320 * windowScale + 'px'
-    };
-
-    const heights = {
-      short: 200 * windowScale + 'px',
-      medium: 280 * windowScale + 'px',
-      tall: 360 * windowScale + 'px',
-      'extra-tall': 440 * windowScale + 'px'
-    };
-
+    const widths = { narrow: 160, medium: 200, wide: 260, 'extra-wide': 320 };
+    const heights = { short: 200, medium: 280, tall: 360, 'extra-tall': 440 };
     return {
-      width: widths[width] || widths.medium,
-      height: heights[height] || heights.medium
+      width: (widths[width] || widths.medium) * windowScale + 'px',
+      height: (heights[height] || heights.medium) * windowScale + 'px'
     };
   }
 
@@ -117,7 +127,6 @@ class WindowBlindCard extends HTMLElement {
   }
 
   getGlassStyle() {
-    const style = this.config.glass_style;
     const styles = {
       clear: 'linear-gradient(135deg, #e8f4f8 0%, #d4e9f2 100%)',
       frosted: 'linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%)',
@@ -125,23 +134,18 @@ class WindowBlindCard extends HTMLElement {
       reflective: 'linear-gradient(135deg, #e8f0f8 0%, #c8dce8 100%)',
       stained: 'linear-gradient(135deg, #ffd4a8 0%, #ffb4a0 50%, #d4e8ff 100%)'
     };
-    return styles[style] || styles.clear;
-  }
-
-  getGlassOpacity() {
-    const opacities = { clear: '0.1', frosted: '0.3', tinted: '0.25', reflective: '0.15', stained: '0.2' };
-    return opacities[this.config.glass_style] || '0.1';
+    return styles[this.config.glass_style] || styles.clear;
   }
 
   render() {
-    const name = this.config.name;
+    const { name } = this.config;
+    const { fontScale, paddingScale, gapScale } = this.getComponentSize();
+    const windowSize = this.getWindowSize();
     const glassStyle = this.getGlassStyle();
-    const glassOpacity = this.getGlassOpacity();
+    const glassOpacity = { clear: '0.1', frosted: '0.3', tinted: '0.25', reflective: '0.15', stained: '0.2' }[this.config.glass_style] || '0.1';
+    const frameColor = this.config.window_frame_color;
     const blindColor = this.config.blind_color;
     const blindSlatColor = this.config.blind_slat_color;
-    const windowSize = this.getWindowSize();
-    const frameColor = this.config.window_frame_color;
-    const { fontScale, paddingScale, gapScale } = this.getComponentSize();
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -151,7 +155,7 @@ class WindowBlindCard extends HTMLElement {
         .header-left { display: flex; align-items: center; gap: ${12 * gapScale}px; }
         .header ha-icon { color: var(--primary-text-color); }
         .header h2 { margin: 0; font-size: ${20 * fontScale}px; color: var(--primary-text-color); font-weight: 500; }
-        .sun-icon { font-size: ${24 * fontScale}px; color: #FFB300; }
+        .sun-icon { font-size: ${24 * fontScale}px; }
         .window-container { padding: ${24 * paddingScale}px; background: #f5f5f5; display: flex; justify-content: center; }
         .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); }
         .visible-light-zone { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, transparent 0%, rgba(255, 220, 80, 0.15) 100%); z-index: 9; pointer-events: none; transition: height 0.5s ease; display: none; }
@@ -180,7 +184,7 @@ class WindowBlindCard extends HTMLElement {
             <ha-icon icon="mdi:window-shutter"></ha-icon>
             <h2>${name}</h2>
           </div>
-          <div class="sun-icon" id="sunIcon"><ha-icon icon="mdi:weather-sunny"></ha-icon></div>
+          <div class="sun-icon" id="sunIcon"></div>
         </div>
         <div class="window-container">
           <div class="window-frame">
@@ -217,22 +221,13 @@ class WindowBlindCard extends HTMLElement {
     const position = entity.attributes.current_position || 0;
     this.updateVisual(position);
     this.shadowRoot.getElementById('slider').value = position;
+    this.updateSunEffects(); // Update sun effects when blind position changes
   }
 
   updateVisual(position) {
     this.shadowRoot.getElementById('blind').style.height = (100 - position) + '%';
     if (this.config.show_position_text) {
       this.shadowRoot.getElementById('positionValue').textContent = position;
-    }
-
-    const visibleLightZone = this.shadowRoot.getElementById('visibleLightZone');
-    if (visibleLightZone) {
-      if (this.isSunlit() && position > 0) {
-        visibleLightZone.style.height = position + '%';
-        visibleLightZone.style.display = 'block';
-      } else {
-        visibleLightZone.style.display = 'none';
-      }
     }
   }
 
@@ -264,7 +259,7 @@ class WindowBlindCardEditor extends HTMLElement {
         input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid var(--divider-color); border-radius: 4px; }
       </style>
       <div class="card-config">
-        <div class="form-group"><label>Entité</label><select data-key="entity" id="entity">${entities.map(e => `<option value="${e}">${this._hass.states[e].attributes.friendly_name || e}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Entité</label><select data-key="entity" id="entity">${entities.map(e => `<option value="${e}" ${this._config.entity === e ? 'selected' : ''}>${this._hass.states[e].attributes.friendly_name || e}</option>`).join('')}</select></div>
         <div class="form-group"><label>Nom</label><input type="text" data-key="name" id="name"></div>
         <div class="form-group"><label>Taille</label><select data-key="size" id="size"><option value="small">Petit</option><option value="medium">Moyen</option><option value="large">Grand</option></select></div>
         <div class="form-group checkbox-group"><input type="checkbox" data-key="show_position_text" id="show_position_text"><label for="show_position_text">Afficher texte position</label></div>
