@@ -65,25 +65,126 @@ class WindowBlindCard extends HTMLElement {
   }
 
   isSunlit() {
-    if (!this._hass) return false;
     const hour = new Date().getHours();
+
+    // Simplifié : jour = 6h-18h, nuit = reste
+    if (hour >= 6 && hour < 18) return true;
+    return false;
+  }
+
+  getSunHaloStyle() {
+    const hour = new Date().getHours();
+    const minutes = new Date().getMinutes();
+    const timeDecimal = hour + minutes / 60; // Ex: 13h30 = 13.5
     const { window_orientation } = this.config;
-    if (hour < 6 || hour >= 18) return false;
-    if (window_orientation === 'east' && hour >= 12) return false;
-    if (window_orientation === 'west' && hour < 12) return false;
-    if (window_orientation === 'north') return false;
-    return true;
+
+    // Pas de halo la nuit ou orientation nord
+    if (hour < 6 || hour >= 18 || window_orientation === 'north') {
+      return { display: 'none' };
+    }
+
+    let position = 'full'; // full, top-right, bottom-right, bottom-left, top-left, none
+    let intensity = 0.4; // Opacité de base augmentée
+
+    // Calcul de l'intensité (max à midi)
+    if (timeDecimal >= 11 && timeDecimal <= 13) {
+      intensity = 0.9; // Maximum à midi augmenté
+    } else if (timeDecimal >= 9 && timeDecimal < 11) {
+      intensity = 0.5 + ((timeDecimal - 9) / 2) * 0.4; // Montée progressive
+    } else if (timeDecimal > 13 && timeDecimal <= 15) {
+      intensity = 0.9 - ((timeDecimal - 13) / 2) * 0.4; // Descente progressive
+    } else {
+      intensity = 0.4; // Intensité minimale augmentée
+    }
+
+    // Calcul de la position selon l'orientation
+    switch (window_orientation) {
+      case 'east':
+        if (timeDecimal >= 6 && timeDecimal < 10) {
+          position = 'full';
+        } else if (timeDecimal >= 10 && timeDecimal < 12) {
+          position = 'bottom-left';
+        } else {
+          position = 'none';
+        }
+        break;
+
+      case 'south':
+        if (timeDecimal >= 6 && timeDecimal < 9) {
+          position = 'bottom-right';
+        } else if (timeDecimal >= 9 && timeDecimal < 15) {
+          position = 'full';
+        } else if (timeDecimal >= 15 && timeDecimal < 18) {
+          position = 'bottom-left';
+        }
+        break;
+
+      case 'west':
+        if (timeDecimal >= 6 && timeDecimal < 12) {
+          position = 'none';
+        } else if (timeDecimal >= 12 && timeDecimal < 15) {
+          position = 'bottom-left';
+          intensity = 0.5 + ((timeDecimal - 12) / 3) * 0.4;
+        } else if (timeDecimal >= 15 && timeDecimal < 18) {
+          position = 'full';
+        }
+        break;
+    }
+
+    if (position === 'none') {
+      return { display: 'none' };
+    }
+
+    // Générer le style CSS selon la position avec intensité augmentée
+    let gradientStyle = '';
+    switch (position) {
+      case 'full':
+        gradientStyle = `radial-gradient(ellipse at center, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.7}) 40%, rgba(255, 245, 180, ${intensity * 0.4}) 70%, transparent 100%)`;
+        break;
+      case 'bottom-left':
+        gradientStyle = `radial-gradient(ellipse 120% 120% at bottom left, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.6}) 30%, rgba(255, 245, 180, ${intensity * 0.3}) 60%, transparent 80%)`;
+        break;
+      case 'bottom-right':
+        gradientStyle = `radial-gradient(ellipse 120% 120% at bottom right, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.6}) 30%, rgba(255, 245, 180, ${intensity * 0.3}) 60%, transparent 80%)`;
+        break;
+      case 'top-left':
+        gradientStyle = `radial-gradient(ellipse 120% 120% at top left, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.6}) 30%, rgba(255, 245, 180, ${intensity * 0.3}) 60%, transparent 80%)`;
+        break;
+      case 'top-right':
+        gradientStyle = `radial-gradient(ellipse 120% 120% at top right, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.6}) 30%, rgba(255, 245, 180, ${intensity * 0.3}) 60%, transparent 80%)`;
+        break;
+    }
+
+    return {
+      display: 'block',
+      background: gradientStyle,
+      transition: 'all 0.5s ease'
+    };
   }
 
   updateSunEffects() {
     if (!this._hass || !this.shadowRoot) return;
 
+    // Mettre à jour l'icône soleil/lune
     const sunIcon = this.shadowRoot.getElementById('sunIcon');
     if (sunIcon) {
       const sunlit = this.isSunlit();
       const icon = sunlit ? 'mdi:weather-sunny' : 'mdi:weather-night';
       const color = sunlit ? '#FFB300' : '#7986CB';
       sunIcon.innerHTML = `<ha-icon icon="${icon}" style="color: ${color};"></ha-icon>`;
+    }
+
+    // Mettre à jour le halo de soleil
+    const sunHalo = this.shadowRoot.getElementById('sunHalo');
+    if (sunHalo) {
+      const haloStyle = this.getSunHaloStyle();
+      sunHalo.style.display = haloStyle.display;
+      if (haloStyle.background) {
+        sunHalo.style.background = haloStyle.background;
+      }
+      if (haloStyle.transition) {
+        sunHalo.style.transition = haloStyle.transition;
+      }
     }
   }
 
@@ -157,6 +258,7 @@ class WindowBlindCard extends HTMLElement {
         .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; }
         .window-divider-v { left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); }
         .window-divider-h { top: 50%; left: 0; width: 100%; height: 3px; transform: translateY(-50%); }
+        .sun-halo { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 3; transition: all 0.5s ease; }
         .blind { position: absolute; top: 0; left: 0; right: 0; background: repeating-linear-gradient(0deg, ${blindColor} 0px, ${blindColor} 14px, ${blindSlatColor} 14px, ${blindSlatColor} 16px); transition: height 0.5s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 10; }
         .controls { padding: ${16 * paddingScale}px; }
         .position-display { text-align: center; margin-bottom: ${12 * paddingScale}px; }
@@ -183,6 +285,7 @@ class WindowBlindCard extends HTMLElement {
         </div>
         <div class="window-container">
           <div class="window-frame">
+            <div class="sun-halo" id="sunHalo"></div>
             <div class="blind" id="blind"></div>
             ${this.getWindowDividers()}
           </div>
@@ -472,4 +575,4 @@ window.customCards.push({
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
 
-console.info('%c WINDOW-BLIND-CARD %c v3.0.0f ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c v2.1.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
