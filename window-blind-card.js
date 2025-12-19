@@ -396,6 +396,7 @@ class WindowBlindCardEditor extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = {};
     this._hass = undefined;
+    this._simulatedHour = null; // null = heure réelle
   }
 
   set hass(hass) {
@@ -441,8 +442,42 @@ class WindowBlindCardEditor extends HTMLElement {
         .checkbox-group { flex-direction: row; align-items: center; }
         label { margin-bottom: 4px; font-weight: 500; }
         input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid var(--divider-color); border-radius: 4px; }
+        .preview-section { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .preview-title { font-weight: bold; margin-bottom: 12px; font-size: 16px; }
+        .preview-container { display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 15px; }
+        .preview-window-frame { width: 200px; height: 280px; background: linear-gradient(135deg, #e8f4f8 0%, #d4e9f2 100%); border: 6px solid #333333; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,0.1); }
+        .preview-sun-halo { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 3; transition: all 0.5s ease; }
+        .preview-blind { position: absolute; top: 0; left: 0; right: 0; background: repeating-linear-gradient(0deg, #d4d4d4 0px, #d4d4d4 14px, #999999 14px, #999999 16px); transition: height 0.5s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 10; height: 30%; }
+        .preview-divider-v { position: absolute; left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); background: #333333; z-index: 5; }
+        .time-simulator { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .time-display { text-align: center; font-size: 24px; font-weight: bold; color: #2196F3; margin: 10px 0; }
+        .simulator-controls { display: flex; gap: 10px; margin-top: 10px; }
+        .simulator-btn { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .simulator-btn-reset { background: #FF9800; color: white; }
+        .simulator-btn-reset:hover { background: #f57c00; }
+        .halo-info { text-align: center; font-size: 12px; color: #666; margin-top: 8px; }
       </style>
       <div class="card-config">
+        <div class="preview-section">
+          <div class="preview-title">🌞 Prévisualisation du Halo Solaire</div>
+          <div class="preview-container">
+            <div class="time-simulator">
+              <label style="margin-bottom: 8px; display: block;">Heure de simulation :</label>
+              <input type="range" id="hourSimulator" min="0" max="23" step="0.5" style="width: 100%;">
+              <div class="time-display" id="timeDisplay">Heure réelle</div>
+              <div class="simulator-controls">
+                <button class="simulator-btn simulator-btn-reset" id="resetTime">Heure Réelle</button>
+              </div>
+              <div class="halo-info" id="haloInfo"></div>
+            </div>
+            <div class="preview-window-frame" id="previewFrame">
+              <div class="preview-sun-halo" id="previewHalo"></div>
+              <div class="preview-blind"></div>
+              <div class="preview-divider-v"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group">
           <label>Entité</label>
           <select data-key="entity">
@@ -473,7 +508,7 @@ class WindowBlindCardEditor extends HTMLElement {
         </div>
         <div class="form-group">
           <label>Orientation Fenêtre</label>
-          <select data-key="window_orientation">
+          <select data-key="window_orientation" id="orientationSelect">
             <option value="north" ${this._config.window_orientation === 'north' ? 'selected' : ''}>Nord</option>
             <option value="east" ${this._config.window_orientation === 'east' ? 'selected' : ''}>Est</option>
             <option value="south" ${!this._config.window_orientation || this._config.window_orientation === 'south' ? 'selected' : ''}>Sud</option>
@@ -535,6 +570,145 @@ class WindowBlindCardEditor extends HTMLElement {
     `;
 
     this._addEventListeners();
+    this._setupPreviewSimulator();
+  }
+
+  _setupPreviewSimulator() {
+    const hourSimulator = this.shadowRoot.getElementById('hourSimulator');
+    const resetBtn = this.shadowRoot.getElementById('resetTime');
+    const orientationSelect = this.shadowRoot.getElementById('orientationSelect');
+
+    // Initialiser à l'heure réelle
+    const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
+    hourSimulator.value = currentHour;
+    this._updatePreview();
+
+    hourSimulator.addEventListener('input', () => {
+      this._simulatedHour = parseFloat(hourSimulator.value);
+      this._updatePreview();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      this._simulatedHour = null;
+      const currentHour = new Date().getHours() + new Date().getMinutes() / 60;
+      hourSimulator.value = currentHour;
+      this._updatePreview();
+    });
+
+    // Mettre à jour la preview quand l'orientation change
+    orientationSelect.addEventListener('change', () => {
+      this._updatePreview();
+    });
+  }
+
+  _updatePreview() {
+    const timeDisplay = this.shadowRoot.getElementById('timeDisplay');
+    const previewHalo = this.shadowRoot.getElementById('previewHalo');
+    const haloInfo = this.shadowRoot.getElementById('haloInfo');
+
+    const hour = this._simulatedHour !== null ? this._simulatedHour : (new Date().getHours() + new Date().getMinutes() / 60);
+    const hours = Math.floor(hour);
+    const minutes = Math.round((hour - hours) * 60);
+
+    if (this._simulatedHour !== null) {
+      timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} (Simulation)`;
+    } else {
+      timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} (Heure réelle)`;
+    }
+
+    const orientation = this.shadowRoot.getElementById('orientationSelect')?.value || this._config.window_orientation || 'south';
+    const haloStyle = this._getSunHaloStyleForPreview(hour, orientation);
+
+    previewHalo.style.display = haloStyle.display;
+    if (haloStyle.background) {
+      previewHalo.style.background = haloStyle.background;
+    }
+
+    // Info sur le halo
+    const isDay = hour >= 6 && hour < 18;
+    if (!isDay) {
+      haloInfo.textContent = '🌙 Nuit - Pas de halo';
+    } else if (orientation === 'north') {
+      haloInfo.textContent = '❄️ Orientation Nord - Pas de halo';
+    } else if (haloStyle.display === 'none') {
+      haloInfo.textContent = '☁️ Soleil hors de portée - Pas de halo';
+    } else {
+      haloInfo.textContent = '☀️ Halo solaire visible';
+    }
+  }
+
+  _getSunHaloStyleForPreview(timeDecimal, orientation) {
+    if (timeDecimal < 6 || timeDecimal >= 18 || orientation === 'north') {
+      return { display: 'none' };
+    }
+
+    let position = 'full';
+    let intensity = 0.4;
+
+    if (timeDecimal >= 11 && timeDecimal <= 13) {
+      intensity = 0.9;
+    } else if (timeDecimal >= 9 && timeDecimal < 11) {
+      intensity = 0.5 + ((timeDecimal - 9) / 2) * 0.4;
+    } else if (timeDecimal > 13 && timeDecimal <= 15) {
+      intensity = 0.9 - ((timeDecimal - 13) / 2) * 0.4;
+    } else {
+      intensity = 0.4;
+    }
+
+    switch (orientation) {
+      case 'east':
+        if (timeDecimal >= 6 && timeDecimal < 10) {
+          position = 'full';
+        } else if (timeDecimal >= 10 && timeDecimal < 12) {
+          position = 'bottom-left';
+        } else {
+          position = 'none';
+        }
+        break;
+
+      case 'south':
+        if (timeDecimal >= 6 && timeDecimal < 9) {
+          position = 'bottom-right';
+        } else if (timeDecimal >= 9 && timeDecimal < 15) {
+          position = 'full';
+        } else if (timeDecimal >= 15 && timeDecimal < 18) {
+          position = 'bottom-left';
+        }
+        break;
+
+      case 'west':
+        if (timeDecimal >= 6 && timeDecimal < 12) {
+          position = 'none';
+        } else if (timeDecimal >= 12 && timeDecimal < 15) {
+          position = 'bottom-left';
+          intensity = 0.5 + ((timeDecimal - 12) / 3) * 0.4;
+        } else if (timeDecimal >= 15 && timeDecimal < 18) {
+          position = 'full';
+        }
+        break;
+    }
+
+    if (position === 'none') {
+      return { display: 'none' };
+    }
+
+    let gradientStyle = '';
+    switch (position) {
+      case 'full':
+        gradientStyle = `radial-gradient(ellipse at center, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.7}) 40%, rgba(255, 245, 180, ${intensity * 0.4}) 70%, transparent 100%)`;
+        break;
+      case 'bottom-left':
+        gradientStyle = `radial-gradient(ellipse 120% 120% at bottom left, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.6}) 30%, rgba(255, 245, 180, ${intensity * 0.3}) 60%, transparent 80%)`;
+        break;
+      case 'bottom-right':
+        gradientStyle = `radial-gradient(ellipse 120% 120% at bottom right, rgba(255, 200, 50, ${intensity}) 0%, rgba(255, 230, 120, ${intensity * 0.6}) 30%, rgba(255, 245, 180, ${intensity * 0.3}) 60%, transparent 80%)`;
+        break;
+    }
+
+    return {
+      display: 'block',
+      background: gradientStyle
+    };
   }
 
   _addEventListeners() {
@@ -575,4 +749,4 @@ window.customCards.push({
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
 
-console.info('%c WINDOW-BLIND-CARD %c v2.1.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c v3.0.1 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
