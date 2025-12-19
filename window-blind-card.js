@@ -54,6 +54,12 @@ class WindowBlindCard extends HTMLElement {
   }
 
   startSunTracking() {
+    // Attendre que le shadowRoot soit prêt
+    if (!this.shadowRoot) {
+      setTimeout(() => this.startSunTracking(), 100);
+      return;
+    }
+
     this.updateSunEffects(); // Initial call
     this.sunInterval = setInterval(() => this.updateSunEffects(), 60000);
   }
@@ -70,7 +76,7 @@ class WindowBlindCard extends HTMLElement {
   }
 
   updateSunEffects() {
-    if (!this._hass) return;
+    if (!this._hass || !this.shadowRoot) return;
 
     const sunIcon = this.shadowRoot.getElementById('sunIcon');
     if (sunIcon) {
@@ -194,15 +200,25 @@ class WindowBlindCard extends HTMLElement {
     `;
 
     this.setupEventListeners();
+
+    // Mettre à jour l'icône du soleil après le rendu
+    setTimeout(() => this.updateSunEffects(), 0);
   }
 
   setupEventListeners() {
     const slider = this.shadowRoot.getElementById('slider');
-    slider.addEventListener('change', (e) => this.setPosition(parseInt(e.target.value)));
-    slider.addEventListener('input', (e) => this.updateVisual(parseInt(e.target.value)));
-    this.shadowRoot.getElementById('btnOpen').addEventListener('click', () => this.callService('open_cover'));
-    this.shadowRoot.getElementById('btnStop').addEventListener('click', () => this.callService('stop_cover'));
-    this.shadowRoot.getElementById('btnClose').addEventListener('click', () => this.callService('close_cover'));
+    if (slider) {
+      slider.addEventListener('change', (e) => this.setPosition(parseInt(e.target.value)));
+      slider.addEventListener('input', (e) => this.updateVisual(parseInt(e.target.value)));
+    }
+
+    const btnOpen = this.shadowRoot.getElementById('btnOpen');
+    const btnStop = this.shadowRoot.getElementById('btnStop');
+    const btnClose = this.shadowRoot.getElementById('btnClose');
+
+    if (btnOpen) btnOpen.addEventListener('click', () => this.callService('open_cover'));
+    if (btnStop) btnStop.addEventListener('click', () => this.callService('stop_cover'));
+    if (btnClose) btnClose.addEventListener('click', () => this.callService('close_cover'));
   }
 
   updateBlind(entity) {
