@@ -575,4 +575,4 @@ window.customCards.push({
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
 
-console.info('%c WINDOW-BLIND-CARD %c v3.3.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c v2.1.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
