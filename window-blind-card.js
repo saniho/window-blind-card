@@ -21,7 +21,6 @@ class WindowBlindCard extends HTMLElement {
       blind_color: config.blind_color || '#d4d4d4',
       blind_slat_color: config.blind_slat_color || '#999999',
       window_orientation: config.window_orientation || 'south',
-      simulated_hour: config.simulated_hour, // Heure de simulation (peut être undefined)
       ...config
     };
     this.render();
@@ -66,39 +65,21 @@ class WindowBlindCard extends HTMLElement {
   }
 
   isSunlit() {
-    const { simulated_hour } = this.config;
+    const hour = new Date().getHours();
     
-    // Utiliser l'heure simulée si définie, sinon l'heure réelle
-    let hour;
-    if (simulated_hour !== undefined && simulated_hour !== null && simulated_hour !== '') {
-      hour = Math.floor(parseFloat(simulated_hour));
-    } else {
-      hour = new Date().getHours();
-    }
-    
-    // Simplifié : jour = 6h-18h, nuit = reste
-    if (hour >= 6 && hour < 18) return true;
+    // Jour = 6h-20h, nuit = reste
+    if (hour >= 6 && hour < 20) return true;
     return false;
   }
 
   getSunHaloStyle() {
-    const { window_orientation, simulated_hour } = this.config;
-    
-    // Utiliser l'heure simulée si définie, sinon l'heure réelle
-    let hour, minutes;
-    if (simulated_hour !== undefined && simulated_hour !== null && simulated_hour !== '') {
-      const simulatedValue = parseFloat(simulated_hour);
-      hour = Math.floor(simulatedValue);
-      minutes = (simulatedValue - hour) * 60;
-    } else {
-      hour = new Date().getHours();
-      minutes = new Date().getMinutes();
-    }
-    
+    const hour = new Date().getHours();
+    const minutes = new Date().getMinutes();
     const timeDecimal = hour + minutes / 60;
+    const { window_orientation } = this.config;
 
     // Pas de halo la nuit ou orientation nord
-    if (hour < 6 || hour >= 18 || window_orientation === 'north') {
+    if (hour < 6 || hour >= 20 || window_orientation === 'north') {
       return { display: 'none' };
     }
 
@@ -119,9 +100,9 @@ class WindowBlindCard extends HTMLElement {
     // Calcul de la position selon l'orientation
     switch (window_orientation) {
       case 'east':
-        if (timeDecimal >= 6 && timeDecimal < 10) {
+        if (timeDecimal >= 6 && timeDecimal < 11) {
           position = 'full';
-        } else if (timeDecimal >= 10 && timeDecimal < 12) {
+        } else if (timeDecimal >= 11 && timeDecimal < 14) {
           position = 'bottom-left';
         } else {
           position = 'none';
@@ -133,7 +114,7 @@ class WindowBlindCard extends HTMLElement {
           position = 'bottom-right';
         } else if (timeDecimal >= 9 && timeDecimal < 15) {
           position = 'full';
-        } else if (timeDecimal >= 15 && timeDecimal < 18) {
+        } else if (timeDecimal >= 15 && timeDecimal < 20) {
           position = 'bottom-left';
         }
         break;
@@ -144,7 +125,7 @@ class WindowBlindCard extends HTMLElement {
         } else if (timeDecimal >= 12 && timeDecimal < 15) {
           position = 'bottom-left';
           intensity = 0.5 + ((timeDecimal - 12) / 3) * 0.4;
-        } else if (timeDecimal >= 15 && timeDecimal < 18) {
+        } else if (timeDecimal >= 15 && timeDecimal < 20) {
           position = 'full';
         }
         break;
@@ -400,8 +381,7 @@ class WindowBlindCard extends HTMLElement {
       glass_style: 'clear',
       blind_color: '#d4d4d4',
       blind_slat_color: '#999999',
-      window_orientation: 'south',
-      simulated_hour: null
+      window_orientation: 'south'
     };
   }
 }
@@ -452,8 +432,7 @@ class WindowBlindCardEditor extends HTMLElement {
       glass_style: 'clear',
       blind_color: '#d4d4d4',
       blind_slat_color: '#999999',
-      window_orientation: 'south',
-      simulated_hour: null
+      window_orientation: 'south'
     };
 
     this.shadowRoot.innerHTML = `
@@ -462,7 +441,6 @@ class WindowBlindCardEditor extends HTMLElement {
         .checkbox-group { flex-direction: row; align-items: center; }
         label { margin-bottom: 4px; font-weight: 500; }
         input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid var(--divider-color); border-radius: 4px; }
-        .info-text { font-size: 12px; color: #666; margin-top: 4px; font-style: italic; }
       </style>
       <div class="card-config">
         <div class="form-group">
@@ -553,12 +531,6 @@ class WindowBlindCardEditor extends HTMLElement {
           <label>Couleur des Lattes</label>
           <input type="color" data-key="blind_slat_color" value="${this._config.blind_slat_color || defaults.blind_slat_color}">
         </div>
-
-        <div class="form-group">
-          <label>Heure de simulation du halo (optionnel)</label>
-          <input type="number" data-key="simulated_hour" min="0" max="23" step="0.5" placeholder="Laisser vide pour heure réelle" value="${this._config.simulated_hour !== undefined && this._config.simulated_hour !== null ? this._config.simulated_hour : ''}">
-          <div class="info-text">💡 Laissez vide pour utiliser l'heure réelle. Sinon, entrez une heure entre 0 et 23 (ex: 13.5 pour 13h30)</div>
-        </div>
       </div>
     `;
     
@@ -579,12 +551,7 @@ class WindowBlindCardEditor extends HTMLElement {
 
     const target = ev.target;
     const key = target.dataset.key;
-    let value = target.type === 'checkbox' ? target.checked : target.value;
-
-    // Convertir simulated_hour en nombre ou null
-    if (key === 'simulated_hour') {
-      value = value === '' ? null : parseFloat(value);
-    }
+    const value = target.type === 'checkbox' ? target.checked : target.value;
 
     if (this._config[key] !== value) {
       const newConfig = { ...this._config, [key]: value };
@@ -608,4 +575,4 @@ window.customCards.push({
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
 
-console.info('%c WINDOW-BLIND-CARD %c v3.1.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c v3.3.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
