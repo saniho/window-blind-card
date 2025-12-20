@@ -13,6 +13,7 @@ class WindowBlindCard extends HTMLElement {
       name: config.name || 'Store',
       size: config.size || 'medium',
       show_position_text: config.show_position_text !== false,
+      show_header: config.show_header !== false,
       window_type: config.window_type || 'double',
       glass_style: config.glass_style || 'clear',
       window_width: config.window_width || 'medium',
@@ -21,6 +22,9 @@ class WindowBlindCard extends HTMLElement {
       blind_color: config.blind_color || '#d4d4d4',
       blind_slat_color: config.blind_slat_color || '#999999',
       window_orientation: config.window_orientation || 'south',
+      button_open_color: config.button_open_color || '#4CAF50',
+      button_stop_color: config.button_stop_color || '#FF9800',
+      button_close_color: config.button_close_color || '#2196F3',
       ...config
     };
     this.render();
@@ -235,7 +239,7 @@ class WindowBlindCard extends HTMLElement {
   }
 
   render() {
-    const { name } = this.config;
+    const { name, show_header } = this.config;
     const { fontScale, paddingScale, gapScale } = this.getComponentSize();
     const windowSize = this.getWindowSize();
     const glassStyle = this.getGlassStyle();
@@ -243,6 +247,9 @@ class WindowBlindCard extends HTMLElement {
     const frameColor = this.config.window_frame_color;
     const blindColor = this.config.blind_color;
     const blindSlatColor = this.config.blind_slat_color;
+    const btnOpenColor = this.config.button_open_color;
+    const btnStopColor = this.config.button_stop_color;
+    const btnCloseColor = this.config.button_close_color;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -254,12 +261,12 @@ class WindowBlindCard extends HTMLElement {
         .header h2 { margin: 0; font-size: ${20 * fontScale}px; color: var(--primary-text-color); font-weight: 500; }
         .sun-icon { font-size: ${24 * fontScale}px; }
         .window-container { padding: ${24 * paddingScale}px; background: #f5f5f5; display: flex; justify-content: center; }
-        .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); }
-        .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; }
+        .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); cursor: pointer; }
+        .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; pointer-events: none; }
         .window-divider-v { left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); }
         .window-divider-h { top: 50%; left: 0; width: 100%; height: 3px; transform: translateY(-50%); }
         .sun-halo { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 3; transition: all 0.5s ease; }
-        .blind { position: absolute; top: 0; left: 0; right: 0; background: repeating-linear-gradient(0deg, ${blindColor} 0px, ${blindColor} 14px, ${blindSlatColor} 14px, ${blindSlatColor} 16px); transition: height 0.5s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 10; }
+        .blind { position: absolute; top: 0; left: 0; right: 0; background: repeating-linear-gradient(0deg, ${blindColor} 0px, ${blindColor} 14px, ${blindSlatColor} 14px, ${blindSlatColor} 16px); transition: height 0.5s ease; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 10; pointer-events: none; }
         .controls { padding: ${16 * paddingScale}px; }
         .position-display { text-align: center; margin-bottom: ${12 * paddingScale}px; }
         .position-value { font-size: ${36 * fontScale}px; font-weight: 600; color: var(--primary-color); }
@@ -269,13 +276,14 @@ class WindowBlindCard extends HTMLElement {
         .buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: ${8 * gapScale}px; margin-top: 16px; }
         .btn { padding: ${12 * paddingScale}px; border: none; border-radius: 8px; font-size: ${13 * fontScale}px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: ${4 * gapScale}px; transition: transform 0.2s, box-shadow 0.2s; color: white; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .btn-open { background: linear-gradient(135deg, #4CAF50, #45a049); }
-        .btn-stop { background: linear-gradient(135deg, #FF9800, #f57c00); }
-        .btn-close { background: linear-gradient(135deg, #2196F3, #1976d2); }
+        .btn-open { background: linear-gradient(135deg, ${btnOpenColor}, ${this.adjustColor(btnOpenColor, -20)}); }
+        .btn-stop { background: linear-gradient(135deg, ${btnStopColor}, ${this.adjustColor(btnStopColor, -20)}); }
+        .btn-close { background: linear-gradient(135deg, ${btnCloseColor}, ${this.adjustColor(btnCloseColor, -20)}); }
         .icon { font-size: ${20 * fontScale}px; }
       </style>
 
       <ha-card class="card">
+        ${show_header ? `
         <div class="header">
           <div class="header-left">
             <ha-icon icon="mdi:window-shutter"></ha-icon>
@@ -283,8 +291,9 @@ class WindowBlindCard extends HTMLElement {
           </div>
           <div class="sun-icon" id="sunIcon"></div>
         </div>
+        ` : ''}
         <div class="window-container">
-          <div class="window-frame">
+          <div class="window-frame" id="windowFrame">
             <div class="sun-halo" id="sunHalo"></div>
             <div class="blind" id="blind"></div>
             ${this.getWindowDividers()}
@@ -308,6 +317,16 @@ class WindowBlindCard extends HTMLElement {
     setTimeout(() => this.updateSunEffects(), 0);
   }
 
+  adjustColor(color, amount) {
+    // Fonction pour assombrir/éclaircir une couleur hex
+    const clamp = (num) => Math.min(Math.max(num, 0), 255);
+    const num = parseInt(color.replace('#', ''), 16);
+    const r = clamp((num >> 16) + amount);
+    const g = clamp(((num >> 8) & 0x00FF) + amount);
+    const b = clamp((num & 0x0000FF) + amount);
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+  }
+
   setupEventListeners() {
     const slider = this.shadowRoot.getElementById('slider');
     if (slider) {
@@ -322,6 +341,35 @@ class WindowBlindCard extends HTMLElement {
     if (btnOpen) btnOpen.addEventListener('click', () => this.callService('open_cover'));
     if (btnStop) btnStop.addEventListener('click', () => this.callService('stop_cover'));
     if (btnClose) btnClose.addEventListener('click', () => this.callService('close_cover'));
+
+    // Ajout du clic sur la fenêtre pour déplacer le volet
+    const windowFrame = this.shadowRoot.getElementById('windowFrame');
+    if (windowFrame) {
+      windowFrame.addEventListener('click', (e) => this.handleWindowClick(e));
+    }
+  }
+
+  handleWindowClick(event) {
+    const windowFrame = this.shadowRoot.getElementById('windowFrame');
+    if (!windowFrame) return;
+
+    const rect = windowFrame.getBoundingClientRect();
+    const clickY = event.clientY - rect.top;
+    const windowHeight = rect.height;
+    
+    // Calculer le pourcentage d'ouverture (inverse car le store descend)
+    const position = Math.round(((windowHeight - clickY) / windowHeight) * 100);
+    
+    // Limiter entre 0 et 100
+    const clampedPosition = Math.max(0, Math.min(100, position));
+    
+    // Mettre à jour visuellement et envoyer la commande
+    this.updateVisual(clampedPosition);
+    const slider = this.shadowRoot.getElementById('slider');
+    if (slider) {
+      slider.value = clampedPosition;
+    }
+    this.setPosition(clampedPosition);
   }
 
   updateBlind(entity) {
@@ -374,6 +422,7 @@ class WindowBlindCard extends HTMLElement {
       name: 'Store',
       size: 'medium',
       show_position_text: true,
+      show_header: true,
       window_type: 'double',
       window_width: 'medium',
       window_height: 'medium',
@@ -381,7 +430,10 @@ class WindowBlindCard extends HTMLElement {
       glass_style: 'clear',
       blind_color: '#d4d4d4',
       blind_slat_color: '#999999',
-      window_orientation: 'south'
+      window_orientation: 'south',
+      button_open_color: '#4CAF50',
+      button_stop_color: '#FF9800',
+      button_close_color: '#2196F3'
     };
   }
 }
@@ -432,7 +484,11 @@ class WindowBlindCardEditor extends HTMLElement {
       glass_style: 'clear',
       blind_color: '#d4d4d4',
       blind_slat_color: '#999999',
-      window_orientation: 'south'
+      window_orientation: 'south',
+      button_open_color: '#4CAF50',
+      button_stop_color: '#FF9800',
+      button_close_color: '#2196F3',
+      show_header: true
     };
 
     this.shadowRoot.innerHTML = `
@@ -531,6 +587,26 @@ class WindowBlindCardEditor extends HTMLElement {
           <label>Couleur des Lattes</label>
           <input type="color" data-key="blind_slat_color" value="${this._config.blind_slat_color || defaults.blind_slat_color}">
         </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" data-key="show_header" ${this._config.show_header !== false ? 'checked' : ''}>
+          <label>Afficher l'en-tête (nom + icônes)</label>
+        </div>
+
+        <div class="form-group">
+          <label>Couleur bouton Ouvrir</label>
+          <input type="color" data-key="button_open_color" value="${this._config.button_open_color || defaults.button_open_color}">
+        </div>
+
+        <div class="form-group">
+          <label>Couleur bouton Stop</label>
+          <input type="color" data-key="button_stop_color" value="${this._config.button_stop_color || defaults.button_stop_color}">
+        </div>
+
+        <div class="form-group">
+          <label>Couleur bouton Fermer</label>
+          <input type="color" data-key="button_close_color" value="${this._config.button_close_color || defaults.button_close_color}">
+        </div>
       </div>
     `;
     
@@ -575,4 +651,4 @@ window.customCards.push({
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
 
-console.info('%c WINDOW-BLIND-CARD %c v2.1.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c v3.4.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
