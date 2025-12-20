@@ -60,14 +60,14 @@ class WindowBlindCard extends HTMLElement {
       setTimeout(() => this.startSunTracking(), 100);
       return;
     }
-
+    
     this.updateSunEffects(); // Initial call
     this.sunInterval = setInterval(() => this.updateSunEffects(), 60000);
   }
 
   isSunlit() {
     const { simulated_hour } = this.config;
-
+    
     // Utiliser l'heure simulée si définie, sinon l'heure réelle
     let hour;
     if (simulated_hour !== undefined && simulated_hour !== null && simulated_hour !== '') {
@@ -75,7 +75,7 @@ class WindowBlindCard extends HTMLElement {
     } else {
       hour = new Date().getHours();
     }
-
+    
     // Simplifié : jour = 6h-18h, nuit = reste
     if (hour >= 6 && hour < 18) return true;
     return false;
@@ -83,7 +83,7 @@ class WindowBlindCard extends HTMLElement {
 
   getSunHaloStyle() {
     const { window_orientation, simulated_hour } = this.config;
-
+    
     // Utiliser l'heure simulée si définie, sinon l'heure réelle
     let hour, minutes;
     if (simulated_hour !== undefined && simulated_hour !== null && simulated_hour !== '') {
@@ -94,7 +94,7 @@ class WindowBlindCard extends HTMLElement {
       hour = new Date().getHours();
       minutes = new Date().getMinutes();
     }
-
+    
     const timeDecimal = hour + minutes / 60;
 
     // Pas de halo la nuit ou orientation nord
@@ -322,7 +322,7 @@ class WindowBlindCard extends HTMLElement {
     `;
 
     this.setupEventListeners();
-
+    
     // Mettre à jour l'icône du soleil après le rendu
     setTimeout(() => this.updateSunEffects(), 0);
   }
@@ -333,11 +333,11 @@ class WindowBlindCard extends HTMLElement {
       slider.addEventListener('change', (e) => this.setPosition(parseInt(e.target.value)));
       slider.addEventListener('input', (e) => this.updateVisual(parseInt(e.target.value)));
     }
-
+    
     const btnOpen = this.shadowRoot.getElementById('btnOpen');
     const btnStop = this.shadowRoot.getElementById('btnStop');
     const btnClose = this.shadowRoot.getElementById('btnClose');
-
+    
     if (btnOpen) btnOpen.addEventListener('click', () => this.callService('open_cover'));
     if (btnStop) btnStop.addEventListener('click', () => this.callService('stop_cover'));
     if (btnClose) btnClose.addEventListener('click', () => this.callService('close_cover'));
@@ -345,10 +345,10 @@ class WindowBlindCard extends HTMLElement {
 
   updateBlind(entity) {
     if (!entity || !entity.attributes) return;
-
+    
     const position = entity.attributes.current_position || 0;
     this.updateVisual(position);
-
+    
     const slider = this.shadowRoot.getElementById('slider');
     if (slider) {
       slider.value = position;
@@ -360,7 +360,7 @@ class WindowBlindCard extends HTMLElement {
     if (blind) {
       blind.style.height = (100 - position) + '%';
     }
-
+    
     if (this.config && this.config.show_position_text) {
       const positionValue = this.shadowRoot.getElementById('positionValue');
       if (positionValue) {
@@ -369,20 +369,20 @@ class WindowBlindCard extends HTMLElement {
     }
   }
 
-  setPosition(position) {
+  setPosition(position) { 
     if (this._hass && this.config && this.config.entity) {
-      this._hass.callService('cover', 'set_cover_position', {
-        entity_id: this.config.entity,
-        position: position
-      });
+      this._hass.callService('cover', 'set_cover_position', { 
+        entity_id: this.config.entity, 
+        position: position 
+      }); 
     }
   }
-
-  callService(service) {
+  
+  callService(service) { 
     if (this._hass && this.config && this.config.entity) {
-      this._hass.callService('cover', service, {
-        entity_id: this.config.entity
-      });
+      this._hass.callService('cover', service, { 
+        entity_id: this.config.entity 
+      }); 
     }
   }
   getCardSize() { return 5; }
@@ -439,7 +439,7 @@ class WindowBlindCardEditor extends HTMLElement {
     }
 
     const entities = Object.keys(this._hass.states || {}).filter(eid => eid.startsWith('cover.'));
-
+    
     const defaults = {
       entity: 'cover.store',
       name: 'Store',
@@ -561,7 +561,7 @@ class WindowBlindCardEditor extends HTMLElement {
         </div>
       </div>
     `;
-
+    
     this._addEventListeners();
   }
 
@@ -588,10 +588,10 @@ class WindowBlindCardEditor extends HTMLElement {
 
     if (this._config[key] !== value) {
       const newConfig = { ...this._config, [key]: value };
-      this.dispatchEvent(new CustomEvent("config-changed", {
-        bubbles: true,
-        composed: true,
-        detail: { config: newConfig }
+      this.dispatchEvent(new CustomEvent("config-changed", { 
+        bubbles: true, 
+        composed: true, 
+        detail: { config: newConfig } 
       }));
     }
   }
