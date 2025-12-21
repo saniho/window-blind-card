@@ -19,6 +19,7 @@ class WindowBlindCard extends HTMLElement {
       window_width: config.window_width || 'medium',
       window_height: config.window_height || 'medium',
       window_frame_color: config.window_frame_color || '#333333',
+      window_background_color: config.window_background_color || '#f5f5f5',
       blind_color: config.blind_color || '#d4d4d4',
       blind_slat_color: config.blind_slat_color || '#999999',
       window_orientation: config.window_orientation || 'south',
@@ -245,6 +246,7 @@ class WindowBlindCard extends HTMLElement {
     const glassStyle = this.getGlassStyle();
     const glassOpacity = { clear: '0.1', frosted: '0.3', tinted: '0.25', reflective: '0.15', stained: '0.2' }[this.config.glass_style] || '0.1';
     const frameColor = this.config.window_frame_color;
+    const windowBgColor = this.config.window_background_color;
     const blindColor = this.config.blind_color;
     const blindSlatColor = this.config.blind_slat_color;
     const btnOpenColor = this.config.button_open_color;
@@ -260,7 +262,7 @@ class WindowBlindCard extends HTMLElement {
         .header ha-icon { color: var(--primary-text-color); }
         .header h2 { margin: 0; font-size: ${20 * fontScale}px; color: var(--primary-text-color); font-weight: 500; }
         .sun-icon { font-size: ${24 * fontScale}px; }
-        .window-container { padding: ${24 * paddingScale}px; background: #f5f5f5; display: flex; justify-content: center; }
+        .window-container { padding: ${24 * paddingScale}px; background: ${windowBgColor}; display: flex; justify-content: center; }
         .window-frame { width: ${windowSize.width}; height: ${windowSize.height}; background: ${glassStyle}; border: 6px solid ${frameColor}; border-radius: 4px; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,${glassOpacity}); cursor: pointer; }
         .window-divider-v, .window-divider-h { position: absolute; background: ${frameColor}; z-index: 5; pointer-events: none; }
         .window-divider-v { left: 50%; top: 0; width: 3px; height: 100%; transform: translateX(-50%); }
@@ -274,12 +276,12 @@ class WindowBlindCard extends HTMLElement {
         .slider-container { margin: ${16 * paddingScale}px 0; }
         .slider { width: 100%; }
         .buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: ${8 * gapScale}px; margin-top: 16px; }
-        .btn { padding: ${12 * paddingScale}px; border: none; border-radius: 8px; font-size: ${13 * fontScale}px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: ${4 * gapScale}px; transition: transform 0.2s, box-shadow 0.2s; color: white; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .btn { padding: ${12 * paddingScale}px; border: none; border-radius: 8px; font-size: ${13 * fontScale}px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: ${4 * gapScale}px; transition: transform 0.2s, box-shadow 0.2s, filter 0.2s; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); filter: brightness(1.1); }
         .btn-open { background: linear-gradient(135deg, ${btnOpenColor}, ${this.adjustColor(btnOpenColor, -20)}); }
         .btn-stop { background: linear-gradient(135deg, ${btnStopColor}, ${this.adjustColor(btnStopColor, -20)}); }
         .btn-close { background: linear-gradient(135deg, ${btnCloseColor}, ${this.adjustColor(btnCloseColor, -20)}); }
-        .icon { font-size: ${20 * fontScale}px; }
+        .icon { font-size: ${20 * fontScale}px; opacity: 0.9; }
       </style>
 
       <ha-card class="card">
@@ -427,6 +429,7 @@ class WindowBlindCard extends HTMLElement {
       window_width: 'medium',
       window_height: 'medium',
       window_frame_color: '#333333',
+      window_background_color: '#f5f5f5',
       glass_style: 'clear',
       blind_color: '#d4d4d4',
       blind_slat_color: '#999999',
@@ -488,7 +491,8 @@ class WindowBlindCardEditor extends HTMLElement {
       button_open_color: '#4CAF50',
       button_stop_color: '#FF9800',
       button_close_color: '#2196F3',
-      show_header: true
+      show_header: true,
+      window_background_color: '#f5f5f5'
     };
 
     this.shadowRoot.innerHTML = `
@@ -580,6 +584,10 @@ class WindowBlindCardEditor extends HTMLElement {
           <input type="color" data-key="window_frame_color" value="${this._config.window_frame_color || defaults.window_frame_color}">
         </div>
         <div class="form-group">
+          <label>Couleur de fond autour de la fenêtre</label>
+          <input type="color" data-key="window_background_color" value="${this._config.window_background_color || defaults.window_background_color}">
+        </div>
+        <div class="form-group">
           <label>Couleur du Store</label>
           <input type="color" data-key="blind_color" value="${this._config.blind_color || defaults.blind_color}">
         </div>
@@ -615,9 +623,14 @@ class WindowBlindCardEditor extends HTMLElement {
 
   _addEventListeners() {
     this.shadowRoot.querySelectorAll('[data-key]').forEach(el => {
-      el.addEventListener('change', (e) => this._valueChanged(e));
-      if (el.type !== 'checkbox' && el.type !== 'color') {
-        el.addEventListener('input', (e) => this._valueChanged(e));
+      // Ne pas utiliser 'input' event pour les champs texte pour éviter les problèmes de focus
+      if (el.type === 'text' || el.type === 'number') {
+        el.addEventListener('change', (e) => this._valueChanged(e));
+      } else {
+        el.addEventListener('change', (e) => this._valueChanged(e));
+        if (el.type !== 'checkbox' && el.type !== 'color') {
+          el.addEventListener('input', (e) => this._valueChanged(e));
+        }
       }
     });
   }
@@ -651,4 +664,4 @@ window.customCards.push({
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
 
-console.info('%c WINDOW-BLIND-CARD %c v3.4.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c v2.1.2 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
