@@ -623,14 +623,21 @@ class WindowBlindCardEditor extends HTMLElement {
 
   _addEventListeners() {
     this.shadowRoot.querySelectorAll('[data-key]').forEach(el => {
-      // Ne pas utiliser 'input' event pour les champs texte pour éviter les problèmes de focus
+      // Pour les champs texte et numériques : seulement 'change' (quand on quitte le champ)
       if (el.type === 'text' || el.type === 'number') {
         el.addEventListener('change', (e) => this._valueChanged(e));
-      } else {
+      } 
+      // Pour les checkboxes : seulement 'change'
+      else if (el.type === 'checkbox') {
         el.addEventListener('change', (e) => this._valueChanged(e));
-        if (el.type !== 'checkbox' && el.type !== 'color') {
-          el.addEventListener('input', (e) => this._valueChanged(e));
-        }
+      }
+      // Pour les couleurs : seulement 'change'
+      else if (el.type === 'color') {
+        el.addEventListener('change', (e) => this._valueChanged(e));
+      }
+      // Pour les select : 'change' uniquement
+      else if (el.tagName.toLowerCase() === 'select') {
+        el.addEventListener('change', (e) => this._valueChanged(e));
       }
     });
   }
@@ -644,6 +651,12 @@ class WindowBlindCardEditor extends HTMLElement {
 
     if (this._config[key] !== value) {
       const newConfig = { ...this._config, [key]: value };
+      
+      // Ne pas déclencher config-changed pour éviter le re-render
+      // Mettre à jour la config en interne
+      this._config = newConfig;
+      
+      // Dispatcher l'événement pour sauvegarder
       this.dispatchEvent(new CustomEvent("config-changed", { 
         bubbles: true, 
         composed: true, 
