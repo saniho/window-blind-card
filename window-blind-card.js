@@ -14,6 +14,7 @@ class WindowBlindCard extends HTMLElement {
       size: config.size || 'medium',
       show_position_text: config.show_position_text !== false,
       show_header: config.show_header !== false,
+      use_theme_colors: config.use_theme_colors || false,
       window_type: config.window_type || 'double',
       glass_style: config.glass_style || 'clear',
       window_width: config.window_width || 'medium',
@@ -240,18 +241,20 @@ class WindowBlindCard extends HTMLElement {
   }
 
   render() {
-    const { name, show_header } = this.config;
+    const { name, show_header, use_theme_colors } = this.config;
     const { fontScale, paddingScale, gapScale } = this.getComponentSize();
     const windowSize = this.getWindowSize();
     const glassStyle = this.getGlassStyle();
     const glassOpacity = { clear: '0.1', frosted: '0.3', tinted: '0.25', reflective: '0.15', stained: '0.2' }[this.config.glass_style] || '0.1';
-    const frameColor = this.config.window_frame_color;
-    const windowBgColor = this.config.window_background_color;
-    const blindColor = this.config.blind_color;
-    const blindSlatColor = this.config.blind_slat_color;
-    const btnOpenColor = this.config.button_open_color;
-    const btnStopColor = this.config.button_stop_color;
-    const btnCloseColor = this.config.button_close_color;
+    
+    // Utiliser les couleurs du thème ou les couleurs personnalisées
+    const frameColor = use_theme_colors ? 'var(--primary-color)' : this.config.window_frame_color;
+    const windowBgColor = use_theme_colors ? 'var(--card-background-color, #f5f5f5)' : this.config.window_background_color;
+    const blindColor = use_theme_colors ? 'var(--disabled-text-color, #d4d4d4)' : this.config.blind_color;
+    const blindSlatColor = use_theme_colors ? 'var(--divider-color, #999999)' : this.config.blind_slat_color;
+    const btnOpenColor = use_theme_colors ? 'var(--success-color, #4CAF50)' : this.config.button_open_color;
+    const btnStopColor = use_theme_colors ? 'var(--warning-color, #FF9800)' : this.config.button_stop_color;
+    const btnCloseColor = use_theme_colors ? 'var(--info-color, #2196F3)' : this.config.button_close_color;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -278,9 +281,9 @@ class WindowBlindCard extends HTMLElement {
         .buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: ${8 * gapScale}px; margin-top: 16px; }
         .btn { padding: ${12 * paddingScale}px; border: none; border-radius: 8px; font-size: ${13 * fontScale}px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: ${4 * gapScale}px; transition: transform 0.2s, box-shadow 0.2s, filter 0.2s; color: white; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); filter: brightness(1.1); }
-        .btn-open { background: linear-gradient(135deg, ${btnOpenColor}, ${this.adjustColor(btnOpenColor, -20)}); }
-        .btn-stop { background: linear-gradient(135deg, ${btnStopColor}, ${this.adjustColor(btnStopColor, -20)}); }
-        .btn-close { background: linear-gradient(135deg, ${btnCloseColor}, ${this.adjustColor(btnCloseColor, -20)}); }
+        .btn-open { background: linear-gradient(135deg, ${btnOpenColor}, ${use_theme_colors ? btnOpenColor : this.adjustColor(btnOpenColor, -20)}); }
+        .btn-stop { background: linear-gradient(135deg, ${btnStopColor}, ${use_theme_colors ? btnStopColor : this.adjustColor(btnStopColor, -20)}); }
+        .btn-close { background: linear-gradient(135deg, ${btnCloseColor}, ${use_theme_colors ? btnCloseColor : this.adjustColor(btnCloseColor, -20)}); }
         .icon { font-size: ${20 * fontScale}px; opacity: 0.9; }
       </style>
 
@@ -425,6 +428,7 @@ class WindowBlindCard extends HTMLElement {
       size: 'medium',
       show_position_text: true,
       show_header: true,
+      use_theme_colors: false,
       window_type: 'double',
       window_width: 'medium',
       window_height: 'medium',
@@ -492,6 +496,7 @@ class WindowBlindCardEditor extends HTMLElement {
       button_stop_color: '#FF9800',
       button_close_color: '#2196F3',
       show_header: true,
+      use_theme_colors: false,
       window_background_color: '#f5f5f5'
     };
 
@@ -601,19 +606,24 @@ class WindowBlindCardEditor extends HTMLElement {
           <label>Afficher l'en-tête (nom + icônes)</label>
         </div>
 
+        <div class="form-group checkbox-group">
+          <input type="checkbox" data-key="use_theme_colors" id="useThemeColors" ${this._config.use_theme_colors ? 'checked' : ''}>
+          <label>Utiliser les couleurs du thème Home Assistant</label>
+        </div>
+
         <div class="form-group">
           <label>Couleur bouton Ouvrir</label>
-          <input type="color" data-key="button_open_color" value="${this._config.button_open_color || defaults.button_open_color}">
+          <input type="color" data-key="button_open_color" class="color-input" value="${this._config.button_open_color || defaults.button_open_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
 
         <div class="form-group">
           <label>Couleur bouton Stop</label>
-          <input type="color" data-key="button_stop_color" value="${this._config.button_stop_color || defaults.button_stop_color}">
+          <input type="color" data-key="button_stop_color" class="color-input" value="${this._config.button_stop_color || defaults.button_stop_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
 
         <div class="form-group">
           <label>Couleur bouton Fermer</label>
-          <input type="color" data-key="button_close_color" value="${this._config.button_close_color || defaults.button_close_color}">
+          <input type="color" data-key="button_close_color" class="color-input" value="${this._config.button_close_color || defaults.button_close_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
       </div>
     `;
@@ -629,7 +639,13 @@ class WindowBlindCardEditor extends HTMLElement {
       } 
       // Pour les checkboxes : seulement 'change'
       else if (el.type === 'checkbox') {
-        el.addEventListener('change', (e) => this._valueChanged(e));
+        el.addEventListener('change', (e) => {
+          this._valueChanged(e);
+          // Si c'est la checkbox du thème, activer/désactiver les couleurs
+          if (e.target.id === 'useThemeColors') {
+            this._toggleColorInputs(e.target.checked);
+          }
+        });
       }
       // Pour les couleurs : seulement 'change'
       else if (el.type === 'color') {
@@ -639,6 +655,13 @@ class WindowBlindCardEditor extends HTMLElement {
       else if (el.tagName.toLowerCase() === 'select') {
         el.addEventListener('change', (e) => this._valueChanged(e));
       }
+    });
+  }
+
+  _toggleColorInputs(useTheme) {
+    const colorInputs = this.shadowRoot.querySelectorAll('.color-input');
+    colorInputs.forEach(input => {
+      input.disabled = useTheme;
     });
   }
 
@@ -677,4 +700,4 @@ window.customCards.push({
   documentationURL: 'https://github.com/saniho/window-blind-card'
 });
 
-console.info('%c WINDOW-BLIND-CARD %c v2.1.2 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
+console.info('%c WINDOW-BLIND-CARD %c v2.2.0 ', 'color: white; background: #2196F3; font-weight: 700;', 'color: #2196F3; background: white; font-weight: 700;');
