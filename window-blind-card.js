@@ -586,19 +586,19 @@ class WindowBlindCardEditor extends HTMLElement {
         </div>
         <div class="form-group">
           <label>Couleur du Cadre</label>
-          <input type="color" data-key="window_frame_color" value="${this._config.window_frame_color || defaults.window_frame_color}">
+          <input type="color" data-key="window_frame_color" class="color-input" value="${this._config.window_frame_color || defaults.window_frame_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
         <div class="form-group">
           <label>Couleur de fond autour de la fenêtre</label>
-          <input type="color" data-key="window_background_color" value="${this._config.window_background_color || defaults.window_background_color}">
+          <input type="color" data-key="window_background_color" class="color-input" value="${this._config.window_background_color || defaults.window_background_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
         <div class="form-group">
           <label>Couleur du Store</label>
-          <input type="color" data-key="blind_color" value="${this._config.blind_color || defaults.blind_color}">
+          <input type="color" data-key="blind_color" class="color-input" value="${this._config.blind_color || defaults.blind_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
         <div class="form-group">
           <label>Couleur des Lattes</label>
-          <input type="color" data-key="blind_slat_color" value="${this._config.blind_slat_color || defaults.blind_slat_color}">
+          <input type="color" data-key="blind_slat_color" class="color-input" value="${this._config.blind_slat_color || defaults.blind_slat_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
         
         <div class="form-group checkbox-group">
