@@ -247,11 +247,13 @@ class WindowBlindCard extends HTMLElement {
     const glassStyle = this.getGlassStyle();
     const glassOpacity = { clear: '0.1', frosted: '0.3', tinted: '0.25', reflective: '0.15', stained: '0.2' }[this.config.glass_style] || '0.1';
     
-    // Utiliser les couleurs du thème ou les couleurs personnalisées
-    const frameColor = use_theme_colors ? 'var(--primary-color)' : this.config.window_frame_color;
-    const windowBgColor = use_theme_colors ? 'var(--card-background-color, #f5f5f5)' : this.config.window_background_color;
-    const blindColor = use_theme_colors ? 'var(--disabled-text-color, #d4d4d4)' : this.config.blind_color;
-    const blindSlatColor = use_theme_colors ? 'var(--divider-color, #999999)' : this.config.blind_slat_color;
+    // Couleurs de la fenêtre et du store : toujours personnalisées
+    const frameColor = this.config.window_frame_color;
+    const windowBgColor = this.config.window_background_color;
+    const blindColor = this.config.blind_color;
+    const blindSlatColor = this.config.blind_slat_color;
+    
+    // Couleurs des boutons : thème ou personnalisées
     const btnOpenColor = use_theme_colors ? 'var(--success-color, #4CAF50)' : this.config.button_open_color;
     const btnStopColor = use_theme_colors ? 'var(--warning-color, #FF9800)' : this.config.button_stop_color;
     const btnCloseColor = use_theme_colors ? 'var(--info-color, #2196F3)' : this.config.button_close_color;
@@ -586,19 +588,19 @@ class WindowBlindCardEditor extends HTMLElement {
         </div>
         <div class="form-group">
           <label>Couleur du Cadre</label>
-          <input type="color" data-key="window_frame_color" class="color-input" value="${this._config.window_frame_color || defaults.window_frame_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
+          <input type="color" data-key="window_frame_color" value="${this._config.window_frame_color || defaults.window_frame_color}">
         </div>
         <div class="form-group">
           <label>Couleur de fond autour de la fenêtre</label>
-          <input type="color" data-key="window_background_color" class="color-input" value="${this._config.window_background_color || defaults.window_background_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
+          <input type="color" data-key="window_background_color" value="${this._config.window_background_color || defaults.window_background_color}">
         </div>
         <div class="form-group">
           <label>Couleur du Store</label>
-          <input type="color" data-key="blind_color" class="color-input" value="${this._config.blind_color || defaults.blind_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
+          <input type="color" data-key="blind_color" value="${this._config.blind_color || defaults.blind_color}">
         </div>
         <div class="form-group">
           <label>Couleur des Lattes</label>
-          <input type="color" data-key="blind_slat_color" class="color-input" value="${this._config.blind_slat_color || defaults.blind_slat_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
+          <input type="color" data-key="blind_slat_color" value="${this._config.blind_slat_color || defaults.blind_slat_color}">
         </div>
         
         <div class="form-group checkbox-group">
@@ -608,22 +610,22 @@ class WindowBlindCardEditor extends HTMLElement {
 
         <div class="form-group checkbox-group">
           <input type="checkbox" data-key="use_theme_colors" id="useThemeColors" ${this._config.use_theme_colors ? 'checked' : ''}>
-          <label>Utiliser les couleurs du thème Home Assistant</label>
+          <label>Utiliser les couleurs du thème pour les boutons</label>
         </div>
 
         <div class="form-group">
           <label>Couleur bouton Ouvrir</label>
-          <input type="color" data-key="button_open_color" class="color-input" value="${this._config.button_open_color || defaults.button_open_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
+          <input type="color" data-key="button_open_color" class="color-input-button" value="${this._config.button_open_color || defaults.button_open_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
 
         <div class="form-group">
           <label>Couleur bouton Stop</label>
-          <input type="color" data-key="button_stop_color" class="color-input" value="${this._config.button_stop_color || defaults.button_stop_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
+          <input type="color" data-key="button_stop_color" class="color-input-button" value="${this._config.button_stop_color || defaults.button_stop_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
 
         <div class="form-group">
           <label>Couleur bouton Fermer</label>
-          <input type="color" data-key="button_close_color" class="color-input" value="${this._config.button_close_color || defaults.button_close_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
+          <input type="color" data-key="button_close_color" class="color-input-button" value="${this._config.button_close_color || defaults.button_close_color}" ${this._config.use_theme_colors ? 'disabled' : ''}>
         </div>
       </div>
     `;
@@ -659,7 +661,7 @@ class WindowBlindCardEditor extends HTMLElement {
   }
 
   _toggleColorInputs(useTheme) {
-    const colorInputs = this.shadowRoot.querySelectorAll('.color-input');
+    const colorInputs = this.shadowRoot.querySelectorAll('.color-input-button');
     colorInputs.forEach(input => {
       input.disabled = useTheme;
     });
